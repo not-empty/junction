@@ -1,0 +1,44 @@
+package consumer
+
+import (
+	"context"
+
+	"{{.Module}}/internal/modules/{{.Lower}}/domain"
+	"{{.Module}}/internal/modules/{{.Lower}}/service"
+	"{{.Module}}/platform/apperror"
+	"{{.Module}}/platform/database"
+	"{{.Module}}/platform/queue"
+)
+
+type {{.Pascal}}Consumer struct {
+	service service.{{.Pascal}}ServiceInterface
+}
+
+func New{{.Pascal}}Consumer(service service.{{.Pascal}}ServiceInterface) *{{.Pascal}}Consumer {
+	return &{{.Pascal}}Consumer{
+		service: service,
+	}
+}
+
+func (c *{{.Pascal}}Consumer) Create(ctx context.Context, job queue.Job) error {
+	var {{.Camel}}Register domain.{{.Pascal}}Register
+
+	err := queue.ValidateData(job, &{{.Camel}}Register)
+	if err != nil {
+		return err
+	}
+
+	if {{.Camel}}Register.ID == "" {
+		return apperror.New(apperror.BadRequest, "invalid id")
+	}
+
+	{{.Camel}}Register.ID, err = database.VerifyULID({{.Camel}}Register.ID)
+
+	if err != nil {
+		return apperror.New(apperror.BadRequest, "invalid id")
+	}
+
+	_, err = c.service.Create(ctx, {{.Camel}}Register)
+
+	return err
+}

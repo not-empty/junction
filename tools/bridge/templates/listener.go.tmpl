@@ -1,0 +1,37 @@
+package listener
+
+import (
+	"context"
+
+	"{{.Module}}/internal/modules/{{.Lower}}/domain"
+	"{{.Module}}/internal/modules/{{.Lower}}/service"
+	"{{.Module}}/platform/apperror"
+	"{{.Module}}/platform/event"
+)
+
+type {{.Pascal}}Listener struct {
+	service service.{{.Pascal}}ServiceInterface
+}
+
+func New{{.Pascal}}Listener(service service.{{.Pascal}}ServiceInterface) *{{.Pascal}}Listener {
+	return &{{.Pascal}}Listener{
+		service: service,
+	}
+}
+
+func (l *{{.Pascal}}Listener) Registered(ctx context.Context, msg event.Message) error {
+	var {{.Camel}}Register domain.{{.Pascal}}Register
+
+	err := event.ValidateData(msg, &{{.Camel}}Register)
+	if err != nil {
+		return err
+	}
+
+	if {{.Camel}}Register.ID == "" {
+		return apperror.New(apperror.BadRequest, "id is required")
+	}
+
+	_, err = l.service.Create(ctx, {{.Camel}}Register)
+
+	return err
+}

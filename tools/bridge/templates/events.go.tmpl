@@ -1,0 +1,7 @@
+package listener
+
+import "{{.Module}}/platform/event"
+
+func RegisterEvents(registry event.Registry, {{.Camel}}Listener *{{.Pascal}}Listener) {
+	registry.Register("{{.Kebab}}.registered", {{.Camel}}Listener.Registered)
+}

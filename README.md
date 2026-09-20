@@ -17,15 +17,16 @@ Bridge treats the delivery mechanism as a detail. HTTP is one bridge to your dom
 ```
                 ┌──────────────────────────────┐
   Web    ──────▶│                              │
-  Mobile ──────▶│   HTTP API  (available now)  │──┐
+  Mobile ──────▶│   HTTP API        cmd/api    │──┐
   CLI    ──────▶│                              │  │
-                |______________________________|  |
-                                                  |
-                                                  ├────▶     Your domain     
-                ┌──────────────────────────────┐  │        (business rules)
-  Kafka  ──────▶│                              │  │     
-  SQS    ──────▶│  Queue/Event  (on the way)   │──┘
-  Rabbit ──────▶│                              │
+                └──────────────────────────────┘  │
+                                                  │
+                ┌──────────────────────────────┐  │
+  Redis  ──────▶│   Queue worker    cmd/worker │──┼────▶   Your domain
+                └──────────────────────────────┘  │      (business rules)
+                                                  │
+                ┌──────────────────────────────┐  │
+  Kafka  ──────▶│   Event consumer  cmd/event  │──┘
                 └──────────────────────────────┘
 ```
 
@@ -37,22 +38,59 @@ Same services. Same repositories. Same validation and error semantics. Different
 
 Bridge is built around the idea of **startup modes** — the way a process exposes its capabilities to the outside world.
 
-| Mode | Status | What it does |
-|------|--------|--------------|
-| **API** | Available | Serves your domain over HTTP with routing, middleware, JSON validation, and graceful shutdown. |
-| **Event / Queue consumer** | Planned | Runs the same domain services against messages pulled from a broker, with the same validation and error mapping. |
+| Mode | Entrypoint | What it does |
+|------|-----------|--------------|
+| **API** | `cmd/api` | Serves your domain over HTTP with routing, middleware, JSON validation, and graceful shutdown. |
+| **Queue worker** | `cmd/worker` | Consumes an omniq queue on Redis. One process per queue, picked with `--queue`, with a per-job timeout and draining on shutdown. |
+| **Event consumer** | `cmd/event` | Subscribes as a Kafka consumer group to every topic in the registry, with retries, backoff, and a `.dlq` topic for messages that exhaust them. |
+
+All three are available, and all three run the same services and repositories:
+
+```
+go run ./cmd/api
+go run ./cmd/worker --queue=user.create
+go run ./cmd/event
+```
+
+The worker takes one queue per process, so scaling a hot queue means running more of that one. The event consumer handles every registered topic in a single process.
 
 The path is deliberate:
 
 1. **Start simple.** Spin up an HTTP API, expose your features, ship something real fast.
-2. **Grow.** Add domains. The structure keeps them isolated and predictable as the project gets bigger.
-3. **Scale sideways.** When an operation outgrows request/response, run it as a queue consumer. The business logic you already wrote comes along untouched — you write the entry point, not the feature again.
+2. **Grow.** Add domains with `make api name=…`. The structure keeps them isolated and predictable as the project gets bigger.
+3. **Scale sideways.** When an operation outgrows request/response, give that domain a second bridge with `make worker name=…` or `make event name=…`. The business logic you already wrote comes along untouched — you write the entry point, not the feature again.
 
 The point is that step 3 costs you very little, because step 1 never let HTTP leak into your domain in the first place.
+
+---
+
+## Scaffolding
+
+A domain is a folder under `internal/modules/`, and each startup mode reaches it through its own thin layer. The generator creates that structure for you:
+
+```
+make api name=product        # HTTP bridge,  wires cmd/api/router.go
+make worker name=product     # queue bridge, wires cmd/worker/queues.go
+make event name=product      # event bridge, wires cmd/event/events.go
+make status                  # domains and the bridges each one has
+```
+
+Every command creates the shared core (`domain`, `repository`, `service`) when it is missing and reuses it when it is already there. There is no ordering and no prerequisite: a domain can start as a worker and gain HTTP later, or never have HTTP at all. Running the same command twice changes nothing.
+
+The domain name accepts `product`, `order-item`, `order_item` or `OrderItem` — all four produce the same result. Pass `table=` to override the table name, which defaults to the snake_case name plus an `s`:
+
+```
+make api name=category table=categories
+```
+
+The generator does not touch the database. The repository it writes expects the table to carry a `deleted_at` column for the soft delete, on top of the columns listed in the generated `domain` package.
 
 ---
 
 ## Roadmap
 
 - [x] API startup mode
+- [x] Queue worker startup mode
+- [x] Event consumer startup mode
+- [x] Domain scaffolding
 - [ ] Hexagonal struct

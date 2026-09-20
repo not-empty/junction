@@ -1,0 +1,62 @@
+package controller
+
+import (
+	"net/http"
+
+	"{{.Module}}/internal/modules/{{.Lower}}/domain"
+	"{{.Module}}/internal/modules/{{.Lower}}/service"
+	"{{.Module}}/platform/httpx"
+)
+
+type {{.Pascal}}Controller struct {
+	service service.{{.Pascal}}ServiceInterface
+}
+
+func New{{.Pascal}}Controller(service service.{{.Pascal}}ServiceInterface) *{{.Pascal}}Controller {
+	return &{{.Pascal}}Controller{
+		service: service,
+	}
+}
+
+func (c *{{.Pascal}}Controller) Create(w http.ResponseWriter, r *http.Request) {
+	var {{.Camel}}Register domain.{{.Pascal}}Register
+
+	err := httpx.ValidateData(r.Body, &{{.Camel}}Register)
+
+	if err != nil {
+		httpx.ResponseError(w, err)
+		return
+	}
+
+	response, err := c.service.Create(r.Context(), {{.Camel}}Register)
+	httpx.Response(w, http.StatusCreated, response, err)
+}
+
+func (c *{{.Pascal}}Controller) Update(w http.ResponseWriter, r *http.Request) {
+	var {{.Camel}}Update domain.{{.Pascal}}Update
+
+	err := httpx.ValidateData(r.Body, &{{.Camel}}Update)
+
+	if err != nil {
+		httpx.ResponseError(w, err)
+		return
+	}
+
+	err = c.service.Update(r.Context(), r.PathValue("id"), {{.Camel}}Update)
+	httpx.Response(w, http.StatusNoContent, nil, err)
+}
+
+func (c *{{.Pascal}}Controller) GetOne(w http.ResponseWriter, r *http.Request) {
+	response, err := c.service.GetOne(r.Context(), r.PathValue("id"))
+	httpx.Response(w, http.StatusOK, response, err)
+}
+
+func (c *{{.Pascal}}Controller) List(w http.ResponseWriter, r *http.Request) {
+	response, err := c.service.List(r.Context())
+	httpx.Response(w, http.StatusOK, response, err)
+}
+
+func (c *{{.Pascal}}Controller) Delete(w http.ResponseWriter, r *http.Request) {
+	err := c.service.Delete(r.Context(), r.PathValue("id"))
+	httpx.Response(w, http.StatusNoContent, nil, err)
+}

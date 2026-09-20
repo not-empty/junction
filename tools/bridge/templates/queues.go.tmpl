@@ -1,0 +1,7 @@
+package consumer
+
+import "{{.Module}}/platform/queue"
+
+func RegisterQueues(registry queue.Registry, {{.Camel}}Consumer *{{.Pascal}}Consumer) {
+	registry.Register("{{.Kebab}}.create", {{.Camel}}Consumer.Create)
+}

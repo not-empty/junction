@@ -1,0 +1,76 @@
+package service
+
+import (
+	"context"
+	"errors"
+
+	"{{.Module}}/internal/modules/{{.Lower}}/domain"
+	"{{.Module}}/internal/modules/{{.Lower}}/repository"
+	"{{.Module}}/platform/apperror"
+	"{{.Module}}/platform/database"
+)
+
+type {{.Pascal}}ServiceInterface interface {
+	Create(ctx context.Context, input domain.{{.Pascal}}Register) (string, error)
+	List(ctx context.Context) ([]domain.{{.Pascal}}, error)
+	GetOne(ctx context.Context, id string) (domain.{{.Pascal}}, error)
+	Update(ctx context.Context, id string, input domain.{{.Pascal}}Update) error
+	Delete(ctx context.Context, id string) error
+}
+
+type {{.Pascal}}Service struct {
+	repository repository.{{.Pascal}}RepositoryInterface
+}
+
+func New{{.Pascal}}Service(repository repository.{{.Pascal}}RepositoryInterface) *{{.Pascal}}Service {
+	return &{{.Pascal}}Service{
+		repository: repository,
+	}
+}
+
+func (s *{{.Pascal}}Service) Create(ctx context.Context, input domain.{{.Pascal}}Register) (string, error) {
+	id, err := s.repository.Create(ctx, input)
+
+	switch {
+	case errors.Is(err, database.ErrInvalidID):
+		return "", apperror.New(apperror.BadRequest, "invalid id")
+	case errors.Is(err, database.ErrDuplicate):
+		return "", apperror.New(apperror.Conflict, "register already exists")
+	}
+
+	return id, err
+}
+
+func (s *{{.Pascal}}Service) GetOne(ctx context.Context, id string) (domain.{{.Pascal}}, error) {
+	{{.Camel}}Data, err := s.repository.GetOne(ctx, id)
+
+	if errors.Is(err, database.ErrNotFound) {
+		return domain.{{.Pascal}}{}, apperror.New(apperror.NotFound, "register not found")
+	}
+
+	return {{.Camel}}Data, err
+}
+
+func (s *{{.Pascal}}Service) List(ctx context.Context) ([]domain.{{.Pascal}}, error) {
+	return s.repository.List(ctx)
+}
+
+func (s *{{.Pascal}}Service) Update(ctx context.Context, id string, input domain.{{.Pascal}}Update) error {
+	err := s.repository.Update(ctx, id, input)
+
+	if errors.Is(err, database.ErrNotFound) {
+		return apperror.New(apperror.NotFound, "register not found")
+	}
+
+	return err
+}
+
+func (s *{{.Pascal}}Service) Delete(ctx context.Context, id string) error {
+	err := s.repository.Delete(ctx, id)
+
+	if errors.Is(err, database.ErrNotFound) {
+		return apperror.New(apperror.NotFound, "register not found")
+	}
+
+	return err
+}

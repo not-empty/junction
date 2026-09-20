@@ -1,0 +1,11 @@
+package controller
+
+import "net/http"
+
+func RegisterRoutes(router *http.ServeMux, {{.Camel}}Controller *{{.Pascal}}Controller) {
+	router.HandleFunc("POST /{{.Kebab}}/add", {{.Camel}}Controller.Create)
+	router.HandleFunc("GET /{{.Kebab}}/list", {{.Camel}}Controller.List)
+	router.HandleFunc("GET /{{.Kebab}}/{id}", {{.Camel}}Controller.GetOne)
+	router.HandleFunc("PATCH /{{.Kebab}}/{id}", {{.Camel}}Controller.Update)
+	router.HandleFunc("DELETE /{{.Kebab}}/{id}", {{.Camel}}Controller.Delete)
+}
