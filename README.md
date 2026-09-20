@@ -48,7 +48,7 @@ All three are available, and all three run the same services and repositories:
 
 ```
 go run ./cmd/api
-go run ./cmd/worker --queue=user.create
+go run ./cmd/worker --queue=product.create
 go run ./cmd/event
 ```
 
@@ -77,10 +77,10 @@ make status                  # domains and the bridges each one has
 
 Every command creates the shared core (`domain`, `repository`, `service`) when it is missing and reuses it when it is already there. There is no ordering and no prerequisite: a domain can start as a worker and gain HTTP later, or never have HTTP at all. Running the same command twice changes nothing.
 
-The domain name accepts `product`, `order-item`, `order_item` or `OrderItem` — all four produce the same result. Pass `table=` to override the table name, which defaults to the snake_case name plus an `s`:
+The domain name accepts `product`, `order-item`, `order_item` or `OrderItem` — all four produce the same result. The table takes the name exactly as you wrote it, so `name=product` queries `product`. Pass `table=` when the table is named differently:
 
 ```
-make api name=category table=categories
+make api name=product table=tbl_products
 ```
 
 The generator does not touch the database. The repository it writes expects the table to carry a `deleted_at` column for the soft delete, on top of the columns listed in the generated `domain` package.

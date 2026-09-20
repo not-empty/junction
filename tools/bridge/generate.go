@@ -100,7 +100,7 @@ func add(root, module, bridgeName string, args []string) error {
 	flags := newFlagSet(bridgeName)
 	table := flags.String("table", "", "database table name (default: domain name in snake_case, pluralized)")
 
-	err := flags.Parse(args)
+	err := flags.Parse(reorderFlags(args))
 	if err != nil {
 		return err
 	}
@@ -138,6 +138,22 @@ func add(root, module, bridgeName string, args []string) error {
 
 	report(append(append(coreChanges, layerChanges...), wiringChange))
 	return nil
+}
+
+func reorderFlags(args []string) []string {
+	var flagArgs []string
+	var positional []string
+
+	for _, arg := range args {
+		if strings.HasPrefix(arg, "-") {
+			flagArgs = append(flagArgs, arg)
+			continue
+		}
+
+		positional = append(positional, arg)
+	}
+
+	return append(flagArgs, positional...)
 }
 
 func report(changes []change) {

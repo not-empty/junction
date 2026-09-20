@@ -45,7 +45,7 @@ func newNames(input, table, module string) (Names, error) {
 
 	names.Table = table
 	if names.Table == "" {
-		names.Table = names.Snake + "s"
+		names.Table = names.Snake
 	}
 
 	return names, nil

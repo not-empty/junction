@@ -155,10 +155,10 @@ func TestNames(t *testing.T) {
 		input string
 		want  Names
 	}{
-		{"product", Names{Pascal: "Product", Camel: "product", Lower: "product", Snake: "product", Kebab: "product", Table: "products"}},
-		{"order-item", Names{Pascal: "OrderItem", Camel: "orderItem", Lower: "orderitem", Snake: "order_item", Kebab: "order-item", Table: "order_items"}},
-		{"order_item", Names{Pascal: "OrderItem", Camel: "orderItem", Lower: "orderitem", Snake: "order_item", Kebab: "order-item", Table: "order_items"}},
-		{"OrderItem", Names{Pascal: "OrderItem", Camel: "orderItem", Lower: "orderitem", Snake: "order_item", Kebab: "order-item", Table: "order_items"}},
+		{"product", Names{Pascal: "Product", Camel: "product", Lower: "product", Snake: "product", Kebab: "product", Table: "product"}},
+		{"order-item", Names{Pascal: "OrderItem", Camel: "orderItem", Lower: "orderitem", Snake: "order_item", Kebab: "order-item", Table: "order_item"}},
+		{"order_item", Names{Pascal: "OrderItem", Camel: "orderItem", Lower: "orderitem", Snake: "order_item", Kebab: "order-item", Table: "order_item"}},
+		{"OrderItem", Names{Pascal: "OrderItem", Camel: "orderItem", Lower: "orderitem", Snake: "order_item", Kebab: "order-item", Table: "order_item"}},
 	}
 
 	for _, testCase := range cases {
@@ -179,5 +179,52 @@ func TestNames(t *testing.T) {
 		if err == nil {
 			t.Errorf("expected %q to be rejected", invalid)
 		}
+	}
+}
+
+func TestReorderFlags(t *testing.T) {
+	cases := []struct {
+		args []string
+		want []string
+	}{
+		{[]string{"product"}, []string{"product"}},
+		{[]string{"product", "--table=tbl"}, []string{"--table=tbl", "product"}},
+		{[]string{"--table=tbl", "product"}, []string{"--table=tbl", "product"}},
+	}
+
+	for _, testCase := range cases {
+		got := reorderFlags(testCase.args)
+
+		if strings.Join(got, " ") != strings.Join(testCase.want, " ") {
+			t.Errorf("%v:\n got %v\nwant %v", testCase.args, got, testCase.want)
+		}
+	}
+}
+
+func TestTableDefaultsToTheGivenName(t *testing.T) {
+	cases := map[string]string{
+		"product":    "product",
+		"order-item": "order_item",
+		"OrderItem":  "order_item",
+	}
+
+	for input, want := range cases {
+		names, err := newNames(input, "", "example.com/app")
+		if err != nil {
+			t.Fatalf("%s: %v", input, err)
+		}
+
+		if names.Table != want {
+			t.Errorf("%s: got table %q, want %q", input, names.Table, want)
+		}
+	}
+
+	names, err := newNames("category", "tbl_categories", "example.com/app")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if names.Table != "tbl_categories" {
+		t.Errorf("explicit table was ignored: got %q", names.Table)
 	}
 }
