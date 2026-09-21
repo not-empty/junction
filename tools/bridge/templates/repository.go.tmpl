@@ -32,7 +32,7 @@ func (r *{{.Pascal}}Repository) Create(ctx context.Context, {{.Camel}} domain.{{
 	id, err := database.Insert(
 		ctx,
 		r.db,
-		"INSERT INTO {{.Table}} ("+domain.{{.Pascal}}Columns+") VALUES (?, ?, ?, ?)",
+		"INSERT INTO {{.Table}} (id, name, created_at, updated_at) VALUES (?, ?, ?, ?)",
 		{{.Camel}}.ID, {{.Camel}}.Name, now, now,
 	)
 
@@ -47,8 +47,13 @@ func (r *{{.Pascal}}Repository) GetOne(ctx context.Context, id string) (domain.{
 	return database.QueryOne(
 		ctx,
 		r.db,
-		scan{{.Pascal}},
-		"SELECT "+domain.{{.Pascal}}Columns+" FROM {{.Table}} WHERE id = ? AND deleted_at IS NULL",
+		func(s database.Scanner) (domain.{{.Pascal}}, error) {
+			var {{.Camel}} domain.{{.Pascal}}
+			err := s.Scan(&{{.Camel}}.ID)
+
+			return {{.Camel}}, err
+		},
+		"SELECT id FROM {{.Table}} WHERE id = ? AND deleted_at IS NULL",
 		id,
 	)
 }
@@ -57,8 +62,13 @@ func (r *{{.Pascal}}Repository) List(ctx context.Context) ([]domain.{{.Pascal}},
 	return database.QueryMany(
 		ctx,
 		r.db,
-		scan{{.Pascal}},
-		"SELECT "+domain.{{.Pascal}}Columns+" FROM {{.Table}} WHERE deleted_at IS NULL ORDER BY id LIMIT 25",
+		func(s database.Scanner) (domain.{{.Pascal}}, error) {
+			var {{.Camel}} domain.{{.Pascal}}
+			err := s.Scan(&{{.Camel}}.ID)
+
+			return {{.Camel}}, err
+		},
+		"SELECT id FROM {{.Table}} WHERE deleted_at IS NULL ORDER BY id LIMIT 25",
 	)
 }
 
@@ -102,11 +112,4 @@ func (r *{{.Pascal}}Repository) Delete(ctx context.Context, id string) error {
 	}
 
 	return nil
-}
-
-func scan{{.Pascal}}(row database.Scanner) (domain.{{.Pascal}}, error) {
-	var {{.Camel}} domain.{{.Pascal}}
-
-	err := row.Scan(&{{.Camel}}.ID, &{{.Camel}}.Name, &{{.Camel}}.CreatedAt, &{{.Camel}}.UpdatedAt)
-	return {{.Camel}}, err
 }
