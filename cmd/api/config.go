@@ -19,11 +19,11 @@ type Config struct {
 	Port               string
 	CORSAllowedOrigins []string
 	MaxBodyBytes       int64
-	DatabaseDSN        string
 }
 
 func loadConfig() (Config, error) {
-	baseCfg, err := config.Load()
+	// Loads .env, which the os.Getenv calls below depend on.
+	_, err := config.Load()
 	if err != nil {
 		return Config{}, fmt.Errorf("invalid configuration: %w", err)
 	}
@@ -31,7 +31,6 @@ func loadConfig() (Config, error) {
 	cfg := Config{
 		Port:         defaultPort,
 		MaxBodyBytes: defaultMaxBodyBytes,
-		DatabaseDSN:  baseCfg.DatabaseDSN,
 	}
 
 	if port := os.Getenv("PORT"); port != "" {

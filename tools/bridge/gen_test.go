@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"testing"
 )
@@ -50,12 +51,13 @@ func TestGeneratedCodeCompiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cmd := exec.Command("go", "build", "./internal/modules/"+name+"/...")
+	// go test, not go build: the generated _test.go files must compile and pass.
+	cmd := exec.Command("go", "test", "-count=1", "./internal/modules/"+name+"/...")
 	cmd.Dir = root
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		t.Fatalf("generated code does not compile: %v\n%s", err, output)
+		t.Fatalf("the generated code does not compile or its tests fail: %v\n%s", err, output)
 	}
 }
 
@@ -122,9 +124,9 @@ func wireOnce(t *testing.T, root, module string, spec bridgeSpec) {
 		t.Fatalf("wired file does not parse: %v", err)
 	}
 
-	call := names.Lower + spec.Layer + "." + spec.Register
-	if !bytes.Contains(wired, []byte(call)) {
-		t.Fatalf("wired file is missing %s", call)
+	element := names.Lower + spec.Layer + "." + moduleSymbol + ","
+	if !bytes.Contains(wired, []byte(element)) {
+		t.Fatalf("wired file is missing %s", element)
 	}
 
 	if !bytes.Contains(wired, []byte(names.Module+"/internal/modules/"+names.Lower+"/"+spec.Layer)) {
@@ -137,7 +139,7 @@ func wireOnce(t *testing.T, root, module string, spec bridgeSpec) {
 	}
 
 	if !strings.Contains(second.Path, "already") {
-		t.Fatalf("second wire did not detect the existing call")
+		t.Fatalf("second wire did not detect the existing element")
 	}
 
 	rewired, err := os.ReadFile(target)
@@ -226,5 +228,93 @@ func TestTableDefaultsToTheGivenName(t *testing.T) {
 
 	if names.Table != "tbl_categories" {
 		t.Errorf("explicit table was ignored: got %q", names.Table)
+	}
+}
+
+func TestDomainMigrationIsVersionedAndWrittenOnce(t *testing.T) {
+	root, err := findRoot()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	module, err := readModule(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	names, err := newNames("bridgemigrationtest", "", module)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	title := "create_" + names.Snake + "_table"
+
+	found, err := existingMigration(root, title)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if found != "" {
+		t.Fatalf("%s already exists, refusing to overwrite it", found)
+	}
+
+	t.Cleanup(func() {
+		matches, _ := filepath.Glob(filepath.Join(root, migrationsDir, "*_"+title+".*.sql"))
+		for _, match := range matches {
+			os.Remove(match)
+		}
+	})
+
+	first, err := domainMigration(root, names)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(first) != 2 {
+		t.Fatalf("got %d files, want the up and down pair", len(first))
+	}
+
+	versioned := regexp.MustCompile(`^migrations/\d{14}_` + title + `\.(up|down)\.sql$`)
+
+	for _, item := range first {
+		if item.Action != "created" {
+			t.Errorf("got action %q for %s, want created", item.Action, item.Path)
+		}
+
+		if !versioned.MatchString(item.Path) {
+			t.Errorf("%s is not a 14 digit versioned migration", item.Path)
+		}
+	}
+
+	upPath := filepath.Join(root, filepath.FromSlash(first[0].Path))
+
+	content, err := os.ReadFile(upPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// The DDL must carry the columns the generated repository queries.
+	for _, column := range []string{names.Table, "`id`", "`name`", "`created_at`", "`updated_at`", "`deleted_at`"} {
+		if !bytes.Contains(content, []byte(column)) {
+			t.Errorf("the migration is missing %s", column)
+		}
+	}
+
+	second, err := domainMigration(root, names)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(second) != 1 || second[0].Action != "exists" {
+		t.Fatalf("a second run did not reuse the migration: %+v", second)
+	}
+
+	matches, err := filepath.Glob(filepath.Join(root, migrationsDir, "*_"+title+".up.sql"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(matches) != 1 {
+		t.Fatalf("got %d up migrations, want exactly 1", len(matches))
 	}
 }

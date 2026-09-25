@@ -9,9 +9,10 @@ import (
 const usage = `bridge - scaffolds domains and their delivery bridges
 
 usage:
-  bridge api <name> [--table=name]      HTTP bridge, wires cmd/api/router.go
-  bridge worker <name> [--table=name]   queue bridge, wires cmd/worker/queues.go
-  bridge event <name> [--table=name]    event bridge, wires cmd/event/events.go
+  bridge api <name> [--table=name]      HTTP bridge, mounts it in cmd/api/modules.go
+  bridge worker <name> [--table=name]   queue bridge, mounts it in cmd/worker/modules.go
+  bridge event <name> [--table=name]    event bridge, mounts it in cmd/event/modules.go
+  bridge migration <name>               empty migration pair in migrations/
   bridge status                         show domains and their bridges
 
 Each command creates the shared core (domain, repository, service) when it is
@@ -45,6 +46,20 @@ func run(args []string) error {
 	module, err := readModule(root)
 	if err != nil {
 		return err
+	}
+
+	if args[0] == "migration" {
+		if len(args) != 2 {
+			return fmt.Errorf("usage: bridge migration <name>")
+		}
+
+		changes, err := manualMigration(root, module, args[1])
+		if err != nil {
+			return err
+		}
+
+		report(changes)
+		return nil
 	}
 
 	if _, ok := bridges[args[0]]; !ok {

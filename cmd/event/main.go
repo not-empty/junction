@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/not-empty/bridge/platform/database"
+	"github.com/not-empty/bridge/platform/bootstrap"
 	"github.com/not-empty/bridge/platform/event"
 	"github.com/not-empty/bridge/platform/event/kafka"
 )
@@ -34,17 +34,14 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	db, err := database.Open(ctx, database.Config{
-		DSN: cfg.DatabaseDSN,
-	})
-
+	deps, closeDeps, err := bootstrap.MountDeps(ctx)
 	if err != nil {
-		return fmt.Errorf("opening database: %w", err)
+		return err
 	}
 
-	defer db.Close()
+	defer closeDeps()
 
-	registry := newRegistry(db)
+	registry := bootstrap.MountEvents(deps, modules)
 
 	subscriber := kafka.NewSubscriber(kafka.Config{
 		Brokers:     cfg.KafkaBrokers,

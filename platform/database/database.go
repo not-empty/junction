@@ -64,6 +64,12 @@ func Open(ctx context.Context, cfg Config) (*DB, error) {
 	return &DB{pool: pool}, nil
 }
 
+// NewFromPool skips the DSN parsing and the ping Open does, so a test can
+// inject a pool backed by a fake driver.
+func NewFromPool(pool *sql.DB) *DB {
+	return &DB{pool: pool}
+}
+
 func (d *DB) Ping(ctx context.Context) error {
 	return d.pool.PingContext(ctx)
 }

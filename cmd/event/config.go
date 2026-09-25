@@ -18,20 +18,19 @@ const (
 )
 
 type Config struct {
-	DatabaseDSN    string
 	KafkaBrokers   []string
 	KafkaGroupID   string
 	HandlerTimeout time.Duration
 }
 
 func loadConfig() (Config, error) {
-	baseCfg, err := config.Load()
+	// Loads .env, which the os.Getenv calls below depend on.
+	_, err := config.Load()
 	if err != nil {
 		return Config{}, err
 	}
 
 	cfg := Config{
-		DatabaseDSN:    baseCfg.DatabaseDSN,
 		KafkaGroupID:   defaultGroupID,
 		HandlerTimeout: handlerTimeout,
 	}

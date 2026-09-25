@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
-	"github.com/not-empty/bridge/platform/database"
+	"github.com/not-empty/bridge/platform/bootstrap"
 	"github.com/not-empty/bridge/platform/httpserver"
 )
 
@@ -33,21 +32,16 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	db, err := database.Open(ctx, database.Config{
-		DSN: cfg.DatabaseDSN,
-	})
-
+	deps, closeDeps, err := bootstrap.MountDeps(ctx)
 	if err != nil {
-		return fmt.Errorf("opening database: %w", err)
+		return err
 	}
 
-	defer db.Close()
-
-	router := newRouter(db)
+	defer closeDeps()
 
 	app := httpserver.NewAPIServer(
 		":"+cfg.Port,
-		router,
+		bootstrap.MountHTTP(deps, modules),
 	)
 
 	app.UseMiddleware(httpserver.RecoverMiddleware)

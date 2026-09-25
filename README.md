@@ -69,9 +69,9 @@ The point is that step 3 costs you very little, because step 1 never let HTTP le
 A domain is a folder under `internal/modules/`, and each startup mode reaches it through its own thin layer. The generator creates that structure for you:
 
 ```
-make api name=product        # HTTP bridge,  wires cmd/api/router.go
-make worker name=product     # queue bridge, wires cmd/worker/queues.go
-make event name=product      # event bridge, wires cmd/event/events.go
+make api name=product        # HTTP bridge,  mounts it in cmd/api/modules.go
+make worker name=product     # queue bridge, mounts it in cmd/worker/modules.go
+make event name=product      # event bridge, mounts it in cmd/event/modules.go
 make status                  # domains and the bridges each one has
 ```
 

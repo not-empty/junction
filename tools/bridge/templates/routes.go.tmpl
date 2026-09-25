@@ -1,11 +1,26 @@
 package controller
 
-import "net/http"
+import (
+	"net/http"
 
-func RegisterRoutes(router *http.ServeMux, {{.Camel}}Controller *{{.Pascal}}Controller) {
-	router.HandleFunc("POST /{{.Kebab}}/add", {{.Camel}}Controller.Create)
-	router.HandleFunc("GET /{{.Kebab}}/list", {{.Camel}}Controller.List)
-	router.HandleFunc("GET /{{.Kebab}}/{id}", {{.Camel}}Controller.GetOne)
-	router.HandleFunc("PATCH /{{.Kebab}}/{id}", {{.Camel}}Controller.Update)
-	router.HandleFunc("DELETE /{{.Kebab}}/{id}", {{.Camel}}Controller.Delete)
+	"{{.Module}}/internal/modules/{{.Lower}}/repository"
+	"{{.Module}}/internal/modules/{{.Lower}}/service"
+	"{{.Module}}/platform/bootstrap"
+)
+
+func Module(deps bootstrap.Deps, mux *http.ServeMux) {
+	registerRoutes(mux, New{{.Pascal}}Controller(
+		service.New{{.Pascal}}Service(
+			repository.New{{.Pascal}}Repository(deps.DB),
+		),
+	))
+}
+
+// Kept apart from Module so a test can mount the routes against a mock.
+func registerRoutes(mux *http.ServeMux, {{.Camel}}Controller *{{.Pascal}}Controller) {
+	mux.HandleFunc("POST /{{.Kebab}}/add", {{.Camel}}Controller.Create)
+	mux.HandleFunc("GET /{{.Kebab}}/list", {{.Camel}}Controller.List)
+	mux.HandleFunc("GET /{{.Kebab}}/{id}", {{.Camel}}Controller.GetOne)
+	mux.HandleFunc("PATCH /{{.Kebab}}/{id}", {{.Camel}}Controller.Update)
+	mux.HandleFunc("DELETE /{{.Kebab}}/{id}", {{.Camel}}Controller.Delete)
 }

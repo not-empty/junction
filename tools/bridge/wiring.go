@@ -12,6 +12,10 @@ import (
 	"strings"
 )
 
+const modulesVar = "modules"
+
+const moduleSymbol = "Module"
+
 func wire(root string, spec bridgeSpec, names Names) (change, error) {
 	display := spec.Target
 	full := filepath.Join(root, filepath.FromSlash(spec.Target))
@@ -28,20 +32,15 @@ func wire(root string, spec bridgeSpec, names Names) (change, error) {
 		return change{}, fmt.Errorf("parsing %s: %w", display, err)
 	}
 
-	fn := findFunc(file, spec.Fn)
-	if fn == nil {
-		return change{}, fmt.Errorf("function %s not found in %s", spec.Fn, display)
+	list := findModulesList(file)
+	if list == nil {
+		return change{}, fmt.Errorf("var %s slice literal not found in %s", modulesVar, display)
 	}
 
 	alias := names.Lower + spec.Layer
 
-	if hasCall(fn, alias, spec.Register) {
+	if hasElement(list, alias, moduleSymbol) {
 		return change{Action: "wired", Path: display + " (already)"}, nil
-	}
-
-	returnStmt := trailingReturn(fn)
-	if returnStmt == nil {
-		return change{}, fmt.Errorf("%s does not end with a return statement", spec.Fn)
 	}
 
 	imports := importDecl(file)
@@ -49,22 +48,21 @@ func wire(root string, spec bridgeSpec, names Names) (change, error) {
 		return change{}, fmt.Errorf("%s has no parenthesized import block", display)
 	}
 
-	snippet, err := render(spec.Wiring, names)
-	if err != nil {
-		return change{}, err
-	}
-
 	importOffset := fset.Position(imports.Rparen).Offset
-	returnOffset := fset.Position(returnStmt.Pos()).Offset
+	elementOffset := fset.Position(list.Rbrace).Offset
+
+	element := "\t" + alias + "." + moduleSymbol + ",\n"
+	if fset.Position(list.Lbrace).Line == fset.Position(list.Rbrace).Line {
+		element = "\n" + element
+	}
 
 	var builder strings.Builder
 
 	builder.Write(source[:importOffset])
-	builder.WriteString(importBlock(spec, names))
-	builder.Write(source[importOffset:returnOffset])
-	builder.WriteString(strings.TrimSpace(string(snippet)))
-	builder.WriteString("\n\n\t")
-	builder.Write(source[returnOffset:])
+	builder.WriteString(importLine(spec, names))
+	builder.Write(source[importOffset:elementOffset])
+	builder.WriteString(element)
+	builder.Write(source[elementOffset:])
 
 	formatted, err := format.Source([]byte(builder.String()))
 	if err != nil {
@@ -79,24 +77,35 @@ func wire(root string, spec bridgeSpec, names Names) (change, error) {
 	return change{Action: "wired", Path: display}, nil
 }
 
-func importBlock(spec bridgeSpec, names Names) string {
-	packages := []string{spec.Layer, "service", "repository"}
+func importLine(spec bridgeSpec, names Names) string {
+	path := fmt.Sprintf("%s/internal/modules/%s/%s", names.Module, names.Lower, spec.Layer)
 
-	var builder strings.Builder
-
-	for _, pkg := range packages {
-		path := fmt.Sprintf("%s/internal/modules/%s/%s", names.Module, names.Lower, pkg)
-		builder.WriteString("\t" + names.Lower + pkg + " " + strconv.Quote(path) + "\n")
-	}
-
-	return builder.String()
+	return "\t" + names.Lower + spec.Layer + " " + strconv.Quote(path) + "\n"
 }
 
-func findFunc(file *ast.File, name string) *ast.FuncDecl {
+func findModulesList(file *ast.File) *ast.CompositeLit {
 	for _, decl := range file.Decls {
-		fn, ok := decl.(*ast.FuncDecl)
-		if ok && fn.Recv == nil && fn.Name.Name == name {
-			return fn
+		genDecl, ok := decl.(*ast.GenDecl)
+		if !ok || genDecl.Tok != token.VAR {
+			continue
+		}
+
+		for _, spec := range genDecl.Specs {
+			valueSpec, ok := spec.(*ast.ValueSpec)
+			if !ok {
+				continue
+			}
+
+			for i, name := range valueSpec.Names {
+				if name.Name != modulesVar || i >= len(valueSpec.Values) {
+					continue
+				}
+
+				list, ok := valueSpec.Values[i].(*ast.CompositeLit)
+				if ok {
+					return list
+				}
+			}
 		}
 	}
 
@@ -114,45 +123,22 @@ func importDecl(file *ast.File) *ast.GenDecl {
 	return nil
 }
 
-func trailingReturn(fn *ast.FuncDecl) *ast.ReturnStmt {
-	if fn.Body == nil || len(fn.Body.List) == 0 {
-		return nil
-	}
-
-	returnStmt, ok := fn.Body.List[len(fn.Body.List)-1].(*ast.ReturnStmt)
-	if !ok {
-		return nil
-	}
-
-	return returnStmt
-}
-
-func hasCall(fn *ast.FuncDecl, alias, register string) bool {
-	found := false
-
-	ast.Inspect(fn, func(node ast.Node) bool {
-		call, ok := node.(*ast.CallExpr)
+func hasElement(list *ast.CompositeLit, alias, symbol string) bool {
+	for _, element := range list.Elts {
+		selector, ok := element.(*ast.SelectorExpr)
 		if !ok {
-			return true
-		}
-
-		selector, ok := call.Fun.(*ast.SelectorExpr)
-		if !ok {
-			return true
+			continue
 		}
 
 		ident, ok := selector.X.(*ast.Ident)
 		if !ok {
+			continue
+		}
+
+		if ident.Name == alias && selector.Sel.Name == symbol {
 			return true
 		}
+	}
 
-		if ident.Name == alias && selector.Sel.Name == register {
-			found = true
-			return false
-		}
-
-		return true
-	})
-
-	return found
+	return false
 }
