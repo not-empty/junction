@@ -9,8 +9,6 @@ import (
 
 const migrationsDir = "migrations"
 
-// Timestamped and not sequential: two branches scaffolding at the same time
-// would both pick 003 and collide on merge.
 func newVersion() string {
 	return time.Now().UTC().Format("20060102150405")
 }
@@ -20,8 +18,6 @@ type migrationData struct {
 	Title string
 }
 
-// domainMigration writes the pair for a domain, once. A later run finds the
-// existing one by its title and leaves it alone, so the version stays put.
 func domainMigration(root string, names Names) ([]change, error) {
 	title := "create_" + names.Snake + "_table"
 

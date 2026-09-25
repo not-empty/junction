@@ -24,7 +24,6 @@ type Config struct {
 }
 
 func loadConfig() (Config, error) {
-	// Loads .env, which the os.Getenv calls below depend on.
 	_, err := config.Load()
 	if err != nil {
 		return Config{}, err

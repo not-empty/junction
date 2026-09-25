@@ -10,6 +10,7 @@ import (
 	"github.com/not-empty/bridge/platform/database"
 )
 
+// Deps holds what the domain modules use, never a delivery client.
 type Deps struct {
 	DB *database.DB
 }

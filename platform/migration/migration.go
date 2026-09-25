@@ -24,8 +24,6 @@ func Up(dsn string) error {
 
 func Down(dsn string) error {
 	return run(dsn, func(m *migrate.Migrate) error {
-		// Stepping down from no version at all reports a missing file, which
-		// reads as a failure. Nothing applied means nothing to roll back.
 		_, _, err := m.Version()
 		if errors.Is(err, migrate.ErrNilVersion) {
 			return migrate.ErrNoChange
@@ -79,8 +77,6 @@ func open(dsn string) (*migrate.Migrate, error) {
 		return nil, fmt.Errorf("parsing database DSN: %w", err)
 	}
 
-	// Required by the migrate driver, and the reason migrations do not reuse
-	// the application pool: stacked statements widen the injection surface.
 	cfg.MultiStatements = true
 	cfg.ParseTime = true
 	cfg.Loc = time.UTC
