@@ -1,7 +1,21 @@
 package listener
 
-import "{{.Module}}/platform/event"
+import (
+	"{{.Module}}/internal/modules/{{.Lower}}/repository"
+	"{{.Module}}/internal/modules/{{.Lower}}/service"
+	"{{.Module}}/platform/bootstrap"
+	"{{.Module}}/platform/event"
+)
 
-func RegisterEvents(registry event.Registry, {{.Camel}}Listener *{{.Pascal}}Listener) {
+func Module(deps bootstrap.Deps, registry event.Registry) {
+	registerEvents(registry, New{{.Pascal}}Listener(
+		service.New{{.Pascal}}Service(
+			repository.New{{.Pascal}}Repository(deps.DB),
+		),
+	))
+}
+
+// Kept apart from Module so a test can register against a mock.
+func registerEvents(registry event.Registry, {{.Camel}}Listener *{{.Pascal}}Listener) {
 	registry.Register("{{.Kebab}}.registered", {{.Camel}}Listener.Registered)
 }

@@ -1,7 +1,21 @@
 package consumer
 
-import "{{.Module}}/platform/queue"
+import (
+	"{{.Module}}/internal/modules/{{.Lower}}/repository"
+	"{{.Module}}/internal/modules/{{.Lower}}/service"
+	"{{.Module}}/platform/bootstrap"
+	"{{.Module}}/platform/queue"
+)
 
-func RegisterQueues(registry queue.Registry, {{.Camel}}Consumer *{{.Pascal}}Consumer) {
+func Module(deps bootstrap.Deps, registry queue.Registry) {
+	registerQueues(registry, New{{.Pascal}}Consumer(
+		service.New{{.Pascal}}Service(
+			repository.New{{.Pascal}}Repository(deps.DB),
+		),
+	))
+}
+
+// Kept apart from Module so a test can register against a mock.
+func registerQueues(registry queue.Registry, {{.Camel}}Consumer *{{.Pascal}}Consumer) {
 	registry.Register("{{.Kebab}}.create", {{.Camel}}Consumer.Create)
 }

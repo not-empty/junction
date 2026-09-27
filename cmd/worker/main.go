@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/not-empty/bridge/platform/database"
+	"github.com/not-empty/bridge/platform/bootstrap"
 	"github.com/not-empty/bridge/platform/queue"
 	"github.com/not-empty/omniq-go/src/omniq"
 )
@@ -29,17 +29,14 @@ func run() error {
 		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	db, err := database.Open(context.Background(), database.Config{
-		DSN: cfg.DatabaseDSN,
-	})
-
+	deps, closeDeps, err := bootstrap.MountDeps(context.Background())
 	if err != nil {
-		return fmt.Errorf("opening database: %w", err)
+		return err
 	}
 
-	defer db.Close()
+	defer closeDeps()
 
-	handler, ok := newRegistry(db)[cfg.Queue]
+	handler, ok := bootstrap.MountQueues(deps, modules)[cfg.Queue]
 	if !ok {
 		return fmt.Errorf("queue %q is not registered", cfg.Queue)
 	}

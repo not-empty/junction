@@ -126,6 +126,11 @@ func add(root, module, bridgeName string, args []string) error {
 		return err
 	}
 
+	migrationChanges, err := domainMigration(root, names)
+	if err != nil {
+		return err
+	}
+
 	layerChanges, err := writeFiles(root, spec.Files, names)
 	if err != nil {
 		return err
@@ -136,7 +141,10 @@ func add(root, module, bridgeName string, args []string) error {
 		return err
 	}
 
-	report(append(append(coreChanges, layerChanges...), wiringChange))
+	changes := append(coreChanges, migrationChanges...)
+	changes = append(changes, layerChanges...)
+
+	report(append(changes, wiringChange))
 	return nil
 }
 
@@ -211,4 +219,17 @@ func status(root string) error {
 	}
 
 	return nil
+}
+
+// renderMigration renders SQL, which must not go through the Go formatter the
+// other templates use.
+func renderMigration(name string, data migrationData) ([]byte, error) {
+	var buf bytes.Buffer
+
+	err := templates.ExecuteTemplate(&buf, name, data)
+	if err != nil {
+		return nil, fmt.Errorf("rendering %s: %w", name, err)
+	}
+
+	return buf.Bytes(), nil
 }

@@ -1,7 +1,15 @@
 package controller
 
-import "net/http"
+import (
+	"net/http"
 
-func RegisterRoutes(router *http.ServeMux, controller *Controller) {
-	router.HandleFunc("GET /health", controller.Check)
+	"github.com/not-empty/bridge/platform/bootstrap"
+)
+
+func Module(_ bootstrap.Deps, mux *http.ServeMux) {
+	registerRoutes(mux, NewController())
+}
+
+func registerRoutes(mux *http.ServeMux, controller *Controller) {
+	mux.HandleFunc("GET /health", controller.Check)
 }

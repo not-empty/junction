@@ -21,7 +21,6 @@ const (
 type Config struct {
 	RedisPort              int
 	RedisHost              string
-	DatabaseDSN            string
 	Queue                  string
 	PollIntervalSeconds    float64
 	PromoteIntervalSeconds float64
@@ -30,7 +29,7 @@ type Config struct {
 }
 
 func loadConfig() (Config, error) {
-	baseCfg, err := config.Load()
+	_, err := config.Load()
 	if err != nil {
 		return Config{}, err
 	}
@@ -56,7 +55,6 @@ func loadConfig() (Config, error) {
 	cfg := Config{
 		RedisPort:              redisPort,
 		RedisHost:              redisHost,
-		DatabaseDSN:            baseCfg.DatabaseDSN,
 		Queue:                  *queue,
 		PollIntervalSeconds:    pollIntervalSeconds,
 		PromoteIntervalSeconds: promoteIntervalSeconds,

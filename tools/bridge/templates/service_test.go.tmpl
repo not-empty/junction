@@ -1,0 +1,139 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"{{.Module}}/internal/modules/{{.Lower}}/domain"
+	"{{.Module}}/platform/apperror"
+	"{{.Module}}/platform/database"
+)
+
+// Fill only the function the test needs; the others return zero values.
+type repositoryMock struct {
+	create func(ctx context.Context, {{.Camel}} domain.{{.Pascal}}Register) (string, error)
+	getOne func(ctx context.Context, id string) (domain.{{.Pascal}}, error)
+	list   func(ctx context.Context) ([]domain.{{.Pascal}}, error)
+	update func(ctx context.Context, id string, {{.Camel}} domain.{{.Pascal}}Update) error
+	remove func(ctx context.Context, id string) error
+}
+
+func (m repositoryMock) Create(ctx context.Context, {{.Camel}} domain.{{.Pascal}}Register) (string, error) {
+	if m.create == nil {
+		return "", nil
+	}
+
+	return m.create(ctx, {{.Camel}})
+}
+
+func (m repositoryMock) GetOne(ctx context.Context, id string) (domain.{{.Pascal}}, error) {
+	if m.getOne == nil {
+		return domain.{{.Pascal}}{}, nil
+	}
+
+	return m.getOne(ctx, id)
+}
+
+func (m repositoryMock) List(ctx context.Context) ([]domain.{{.Pascal}}, error) {
+	if m.list == nil {
+		return nil, nil
+	}
+
+	return m.list(ctx)
+}
+
+func (m repositoryMock) Update(ctx context.Context, id string, {{.Camel}} domain.{{.Pascal}}Update) error {
+	if m.update == nil {
+		return nil
+	}
+
+	return m.update(ctx, id, {{.Camel}})
+}
+
+func (m repositoryMock) Delete(ctx context.Context, id string) error {
+	if m.remove == nil {
+		return nil
+	}
+
+	return m.remove(ctx, id)
+}
+
+func TestGetOneMapsNotFound(t *testing.T) {
+	service := New{{.Pascal}}Service(repositoryMock{
+		getOne: func(ctx context.Context, id string) (domain.{{.Pascal}}, error) {
+			return domain.{{.Pascal}}{}, database.ErrNotFound
+		},
+	})
+
+	_, err := service.GetOne(context.Background(), "whatever")
+
+	assertKind(t, err, apperror.NotFound)
+}
+
+func TestCreateMapsDuplicate(t *testing.T) {
+	service := New{{.Pascal}}Service(repositoryMock{
+		create: func(ctx context.Context, {{.Camel}} domain.{{.Pascal}}Register) (string, error) {
+			return "", database.ErrDuplicate
+		},
+	})
+
+	_, err := service.Create(context.Background(), domain.{{.Pascal}}Register{Name: "a name"})
+
+	assertKind(t, err, apperror.Conflict)
+}
+
+func TestCreateReturnsTheNewID(t *testing.T) {
+	service := New{{.Pascal}}Service(repositoryMock{
+		create: func(ctx context.Context, {{.Camel}} domain.{{.Pascal}}Register) (string, error) {
+			return "an-id", nil
+		},
+	})
+
+	id, err := service.Create(context.Background(), domain.{{.Pascal}}Register{Name: "a name"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if id != "an-id" {
+		t.Errorf("got id %q, want %q", id, "an-id")
+	}
+}
+
+func TestUpdateMapsNotFound(t *testing.T) {
+	service := New{{.Pascal}}Service(repositoryMock{
+		update: func(ctx context.Context, id string, {{.Camel}} domain.{{.Pascal}}Update) error {
+			return database.ErrNotFound
+		},
+	})
+
+	err := service.Update(context.Background(), "whatever", domain.{{.Pascal}}Update{Name: "a name"})
+
+	assertKind(t, err, apperror.NotFound)
+}
+
+func TestDeleteMapsNotFound(t *testing.T) {
+	service := New{{.Pascal}}Service(repositoryMock{
+		remove: func(ctx context.Context, id string) error {
+			return database.ErrNotFound
+		},
+	})
+
+	err := service.Delete(context.Background(), "whatever")
+
+	assertKind(t, err, apperror.NotFound)
+}
+
+func assertKind(t *testing.T, err error, want apperror.Kind) {
+	t.Helper()
+
+	var appErr *apperror.Error
+
+	if !errors.As(err, &appErr) {
+		t.Fatalf("got %v, want an *apperror.Error", err)
+	}
+
+	if appErr.Kind != want {
+		t.Fatalf("got kind %v, want %v", appErr.Kind, want)
+	}
+}

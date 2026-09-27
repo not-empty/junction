@@ -1,0 +1,124 @@
+package listener
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"testing"
+
+	"{{.Module}}/internal/modules/{{.Lower}}/domain"
+	"{{.Module}}/platform/apperror"
+	"{{.Module}}/platform/database"
+	"{{.Module}}/platform/event"
+)
+
+// Fill only the function the test needs; the others return zero values.
+type serviceMock struct {
+	create func(ctx context.Context, input domain.{{.Pascal}}Register) (string, error)
+}
+
+func (m serviceMock) Create(ctx context.Context, input domain.{{.Pascal}}Register) (string, error) {
+	if m.create == nil {
+		return "", nil
+	}
+
+	return m.create(ctx, input)
+}
+
+func (m serviceMock) GetOne(ctx context.Context, id string) (domain.{{.Pascal}}, error) {
+	return domain.{{.Pascal}}{}, nil
+}
+
+func (m serviceMock) List(ctx context.Context) ([]domain.{{.Pascal}}, error) { return nil, nil }
+
+func (m serviceMock) Update(ctx context.Context, id string, input domain.{{.Pascal}}Update) error {
+	return nil
+}
+
+func (m serviceMock) Delete(ctx context.Context, id string) error { return nil }
+
+func message(payload string) event.Message {
+	return event.Message{Topic: "{{.Kebab}}.registered", Payload: []byte(payload)}
+}
+
+func TestRegisteredHandsThePayloadToTheService(t *testing.T) {
+	id := database.NewID()
+	received := domain.{{.Pascal}}Register{}
+
+	listener := New{{.Pascal}}Listener(serviceMock{
+		create: func(ctx context.Context, input domain.{{.Pascal}}Register) (string, error) {
+			received = input
+			return input.ID, nil
+		},
+	})
+
+	err := listener.Registered(context.Background(), message(fmt.Sprintf(`{"id":%q,"name":"a name"}`, id)))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if received.ID != id {
+		t.Errorf("got id %q, want %q", received.ID, id)
+	}
+
+	if received.Name != "a name" {
+		t.Errorf("got name %q, want %q", received.Name, "a name")
+	}
+}
+
+func TestRegisteredRejectsAMissingID(t *testing.T) {
+	listener := New{{.Pascal}}Listener(serviceMock{
+		create: func(ctx context.Context, input domain.{{.Pascal}}Register) (string, error) {
+			t.Fatal("the service must not be reached without an id")
+			return "", nil
+		},
+	})
+
+	err := listener.Registered(context.Background(), message(`{"name":"a name"}`))
+
+	assertKind(t, err, apperror.BadRequest)
+}
+
+func TestRegisteredRejectsAMalformedPayload(t *testing.T) {
+	listener := New{{.Pascal}}Listener(serviceMock{
+		create: func(ctx context.Context, input domain.{{.Pascal}}Register) (string, error) {
+			t.Fatal("the service must not be reached with a malformed payload")
+			return "", nil
+		},
+	})
+
+	err := listener.Registered(context.Background(), message(`{`))
+	if err == nil {
+		t.Fatal("expected an error")
+	}
+}
+
+func TestRegisterEventsResolvesTheHandler(t *testing.T) {
+	registry := event.Registry{}
+
+	registerEvents(registry, New{{.Pascal}}Listener(serviceMock{}))
+
+	handler, ok := registry["{{.Kebab}}.registered"]
+	if !ok {
+		t.Fatalf("no handler registered for %q", "{{.Kebab}}.registered")
+	}
+
+	err := handler(context.Background(), message(fmt.Sprintf(`{"id":%q,"name":"a name"}`, database.NewID())))
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func assertKind(t *testing.T, err error, want apperror.Kind) {
+	t.Helper()
+
+	var appErr *apperror.Error
+
+	if !errors.As(err, &appErr) {
+		t.Fatalf("got %v, want an *apperror.Error", err)
+	}
+
+	if appErr.Kind != want {
+		t.Fatalf("got kind %v, want %v", appErr.Kind, want)
+	}
+}

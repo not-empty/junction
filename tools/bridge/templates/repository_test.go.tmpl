@@ -1,0 +1,120 @@
+package repository
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"github.com/DATA-DOG/go-sqlmock"
+	"{{.Module}}/internal/modules/{{.Lower}}/domain"
+	"{{.Module}}/platform/database"
+)
+
+// Backs the repository with a fake driver. The tests below match the query
+// text: adjust them when the SQL changes.
+func newRepository(t *testing.T) (*{{.Pascal}}Repository, sqlmock.Sqlmock) {
+	t.Helper()
+
+	pool, mock, err := sqlmock.New()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Cleanup(func() {
+		pool.Close()
+	})
+
+	return New{{.Pascal}}Repository(database.NewFromPool(pool)), mock
+}
+
+func TestGetOneScansTheRow(t *testing.T) {
+	repository, mock := newRepository(t)
+
+	mock.ExpectQuery("SELECT id FROM {{.Table}}").
+		WithArgs("an-id").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}).AddRow("an-id"))
+
+	{{.Camel}}, err := repository.GetOne(context.Background(), "an-id")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if {{.Camel}}.ID != "an-id" {
+		t.Errorf("got id %q, want %q", {{.Camel}}.ID, "an-id")
+	}
+
+	assertExpectations(t, mock)
+}
+
+func TestGetOneMapsNoRowsToNotFound(t *testing.T) {
+	repository, mock := newRepository(t)
+
+	mock.ExpectQuery("SELECT id FROM {{.Table}}").
+		WithArgs("an-id").
+		WillReturnRows(sqlmock.NewRows([]string{"id"}))
+
+	_, err := repository.GetOne(context.Background(), "an-id")
+
+	if !errors.Is(err, database.ErrNotFound) {
+		t.Fatalf("got %v, want ErrNotFound", err)
+	}
+
+	assertExpectations(t, mock)
+}
+
+func TestCreateGeneratesAnIDWhenEmpty(t *testing.T) {
+	repository, mock := newRepository(t)
+
+	mock.ExpectExec("INSERT INTO {{.Table}}").
+		WillReturnResult(sqlmock.NewResult(1, 1))
+
+	id, err := repository.Create(context.Background(), domain.{{.Pascal}}Register{Name: "a name"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if id == "" {
+		t.Error("expected a generated id")
+	}
+
+	assertExpectations(t, mock)
+}
+
+func TestUpdateMapsMissingRowToNotFound(t *testing.T) {
+	repository, mock := newRepository(t)
+
+	mock.ExpectExec("UPDATE {{.Table}} SET").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err := repository.Update(context.Background(), "an-id", domain.{{.Pascal}}Update{Name: "a name"})
+
+	if !errors.Is(err, database.ErrNotFound) {
+		t.Fatalf("got %v, want ErrNotFound", err)
+	}
+
+	assertExpectations(t, mock)
+}
+
+func TestDeleteMapsMissingRowToNotFound(t *testing.T) {
+	repository, mock := newRepository(t)
+
+	mock.ExpectExec("UPDATE {{.Table}} SET deleted_at").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	err := repository.Delete(context.Background(), "an-id")
+
+	if !errors.Is(err, database.ErrNotFound) {
+		t.Fatalf("got %v, want ErrNotFound", err)
+	}
+
+	assertExpectations(t, mock)
+}
+
+func assertExpectations(t *testing.T, mock sqlmock.Sqlmock) {
+	t.Helper()
+
+	err := mock.ExpectationsWereMet()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
