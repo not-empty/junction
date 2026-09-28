@@ -34,6 +34,17 @@ func domainMigration(root string, names Names) ([]change, error) {
 		"migration_up.sql.tmpl", "migration_down.sql.tmpl")
 }
 
+// tableMigration writes the create table pair of a domain for a table that
+// has no domain of its own, such as a pivot table.
+func tableMigration(root, module, input string) ([]change, error) {
+	names, err := newNames(input, "", module)
+	if err != nil {
+		return nil, err
+	}
+
+	return domainMigration(root, names)
+}
+
 // manualMigration writes an empty pair for a change the generator cannot guess.
 func manualMigration(root, module, input string) ([]change, error) {
 	words := splitWords(input)
