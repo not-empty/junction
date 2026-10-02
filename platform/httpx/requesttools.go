@@ -32,7 +32,16 @@ type errorBody struct {
 	Fields  map[string]string `json:"fields,omitempty"`
 }
 
+type ResponseData[T any] struct {
+	Data       T      `json:"data"`
+	PageCursor string `json:"page_cursor,omitempty"`
+}
+
 func Response(w http.ResponseWriter, statusCode int, content any, err error) {
+	ResponsePage(w, statusCode, content, "", err)
+}
+
+func ResponsePage(w http.ResponseWriter, statusCode int, content any, cursor string, err error) {
 	if err != nil {
 		ResponseError(w, err)
 		return
@@ -43,7 +52,7 @@ func Response(w http.ResponseWriter, statusCode int, content any, err error) {
 		return
 	}
 
-	responseEncoded, err := json.Marshal(content)
+	responseEncoded, err := json.Marshal(ResponseData[any]{Data: content, PageCursor: cursor})
 	if err != nil {
 		slog.Error("failed to encode response", "error", err)
 		ResponseInternalError(w)
