@@ -23,7 +23,7 @@ func TestGeneratedCodeCompiles(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	const name = "bridgegentest"
+	const name = "junctiongentest"
 
 	generated := filepath.Join(root, "internal", "modules", name)
 
@@ -42,8 +42,8 @@ func TestGeneratedCodeCompiles(t *testing.T) {
 
 	specs := append([]fileSpec{}, coreFiles...)
 
-	for _, bridgeName := range bridgeOrder {
-		specs = append(specs, bridges[bridgeName].Files...)
+	for _, entryName := range entryOrder {
+		specs = append(specs, entrySpecs[entryName].Files...)
 	}
 
 	_, err = writeFiles(root, specs, names)
@@ -72,14 +72,14 @@ func TestWireIsIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	for _, bridgeName := range bridgeOrder {
-		t.Run(bridgeName, func(t *testing.T) {
-			wireOnce(t, root, module, bridges[bridgeName])
+	for _, entryName := range entryOrder {
+		t.Run(entryName, func(t *testing.T) {
+			wireOnce(t, root, module, entrySpecs[entryName])
 		})
 	}
 }
 
-func wireOnce(t *testing.T, root, module string, spec bridgeSpec) {
+func wireOnce(t *testing.T, root, module string, spec entrySpec) {
 	t.Helper()
 
 	temp := t.TempDir()
@@ -100,7 +100,7 @@ func wireOnce(t *testing.T, root, module string, spec bridgeSpec) {
 		t.Fatal(err)
 	}
 
-	names, err := newNames("bridgewiretest", "", module)
+	names, err := newNames("junctionwiretest", "", module)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +242,7 @@ func TestDomainMigrationIsVersionedAndWrittenOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	names, err := newNames("bridgemigrationtest", "", module)
+	names, err := newNames("junctionmigrationtest", "", module)
 	if err != nil {
 		t.Fatal(err)
 	}

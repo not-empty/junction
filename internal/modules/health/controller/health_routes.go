@@ -3,7 +3,7 @@ package controller
 import (
 	"net/http"
 
-	"github.com/not-empty/bridge/platform/bootstrap"
+	"github.com/not-empty/junction/platform/bootstrap"
 )
 
 func Module(_ bootstrap.Deps, mux *http.ServeMux) {

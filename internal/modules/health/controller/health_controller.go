@@ -3,7 +3,7 @@ package controller
 import (
 	"net/http"
 
-	"github.com/not-empty/bridge/platform/httpx"
+	"github.com/not-empty/junction/platform/httpx"
 )
 
 type Controller struct{}

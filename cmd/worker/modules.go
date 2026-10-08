@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/not-empty/bridge/platform/bootstrap"
+	"github.com/not-empty/junction/platform/bootstrap"
 )
 
 // `make worker name=<domain>` appends to this list.

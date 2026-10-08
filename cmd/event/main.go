@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/not-empty/bridge/platform/bootstrap"
-	"github.com/not-empty/bridge/platform/event"
-	"github.com/not-empty/bridge/platform/event/kafka"
+	"github.com/not-empty/junction/platform/bootstrap"
+	"github.com/not-empty/junction/platform/event"
+	"github.com/not-empty/junction/platform/event/kafka"
 )
 
 func main() {

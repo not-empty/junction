@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"runtime/debug"
 
-	"github.com/not-empty/bridge/platform/httpx"
+	"github.com/not-empty/junction/platform/httpx"
 )
 
 type responseTracker struct {

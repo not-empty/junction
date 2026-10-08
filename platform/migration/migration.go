@@ -11,7 +11,7 @@ import (
 	migratemysql "github.com/golang-migrate/migrate/v4/database/mysql"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 
-	"github.com/not-empty/bridge/migrations"
+	"github.com/not-empty/junction/migrations"
 )
 
 var ErrNoChange = migrate.ErrNoChange

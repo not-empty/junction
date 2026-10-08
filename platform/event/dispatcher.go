@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/not-empty/bridge/platform/apperror"
+	"github.com/not-empty/junction/platform/apperror"
 )
 
 func Dispatcher(registry Registry, timeout time.Duration) Handler {

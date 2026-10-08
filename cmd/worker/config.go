@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/not-empty/bridge/platform/config"
+	"github.com/not-empty/junction/platform/config"
 )
 
 const (

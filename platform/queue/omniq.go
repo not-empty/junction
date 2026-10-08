@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/not-empty/bridge/platform/apperror"
+	"github.com/not-empty/junction/platform/apperror"
 	"github.com/not-empty/omniq-go/src/omniq"
 )
 

@@ -91,13 +91,13 @@ func writeFiles(root string, specs []fileSpec, names Names) ([]change, error) {
 	return changes, nil
 }
 
-func add(root, module, bridgeName string, args []string) error {
-	spec, ok := bridges[bridgeName]
+func add(root, module, entryName string, args []string) error {
+	spec, ok := entrySpecs[entryName]
 	if !ok {
-		return fmt.Errorf("bridge %q is not implemented yet", bridgeName)
+		return fmt.Errorf("entry %q is not implemented yet", entryName)
 	}
 
-	flags := newFlagSet(bridgeName)
+	flags := newFlagSet(entryName)
 	table := flags.String("table", "", "database table name (default: domain name in snake_case, pluralized)")
 
 	err := flags.Parse(reorderFlags(args))
@@ -106,7 +106,7 @@ func add(root, module, bridgeName string, args []string) error {
 	}
 
 	if flags.NArg() != 1 {
-		return fmt.Errorf("usage: bridge %s <name> [--table=name]", bridgeName)
+		return fmt.Errorf("usage: junction %s <name> [--table=name]", entryName)
 	}
 
 	names, err := newNames(flags.Arg(0), *table, module)
@@ -196,15 +196,15 @@ func status(root string) error {
 
 		row := []string{entry.Name()}
 
-		for _, bridgeName := range bridgeOrder {
-			layer := filepath.Join(modules, entry.Name(), bridges[bridgeName].Layer)
+		for _, entryName := range entryOrder {
+			layer := filepath.Join(modules, entry.Name(), entrySpecs[entryName].Layer)
 			mark := "."
 
 			if info, err := os.Stat(layer); err == nil && info.IsDir() {
 				mark = "x"
 			}
 
-			row = append(row, fmt.Sprintf("%s %s", bridgeName, mark))
+			row = append(row, fmt.Sprintf("%s %s", entryName, mark))
 		}
 
 		if len(entry.Name()) > width {

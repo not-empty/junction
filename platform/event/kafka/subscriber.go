@@ -9,7 +9,7 @@ import (
 
 	kafkago "github.com/segmentio/kafka-go"
 
-	"github.com/not-empty/bridge/platform/event"
+	"github.com/not-empty/junction/platform/event"
 )
 
 type Config struct {

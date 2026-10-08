@@ -6,11 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/not-empty/bridge/platform/config"
+	"github.com/not-empty/junction/platform/config"
 )
 
 const (
-	defaultGroupID     = "bridge"
+	defaultGroupID     = "junction"
 	defaultMaxAttempts = 5
 	defaultBackoff     = 1 * time.Second
 	defaultDLQSuffix   = ".dlq"

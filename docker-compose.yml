@@ -1,7 +1,7 @@
 services:
   mysql:
     image: mysql:26.7.0
-    container_name: bridge-mysql
+    container_name: junction-mysql
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -26,7 +26,7 @@ services:
 
   redis:
     image: redis:8.10.1-alpine
-    container_name: bridge-redis
+    container_name: junction-redis
     command: ["redis-server", "/usr/local/etc/redis/redis.conf"]
     ports:
       - "127.0.0.1:${REDIS_PORT:-6379}:6379"
@@ -42,7 +42,7 @@ services:
 
   kafka:
     image: apache/kafka:4.3.1
-    container_name: bridge-kafka
+    container_name: junction-kafka
     environment:
       CLUSTER_ID: ZnxHmlQMQ4ad4_p_V5jLWg
       KAFKA_NODE_ID: 1

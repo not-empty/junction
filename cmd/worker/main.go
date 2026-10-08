@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/not-empty/bridge/platform/bootstrap"
-	"github.com/not-empty/bridge/platform/queue"
+	"github.com/not-empty/junction/platform/bootstrap"
+	"github.com/not-empty/junction/platform/queue"
 	"github.com/not-empty/omniq-go/src/omniq"
 )
 

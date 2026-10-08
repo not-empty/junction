@@ -16,7 +16,7 @@ const modulesVar = "modules"
 
 const moduleSymbol = "Module"
 
-func wire(root string, spec bridgeSpec, names Names) (change, error) {
+func wire(root string, spec entrySpec, names Names) (change, error) {
 	display := spec.Target
 	full := filepath.Join(root, filepath.FromSlash(spec.Target))
 
@@ -77,7 +77,7 @@ func wire(root string, spec bridgeSpec, names Names) (change, error) {
 	return change{Action: "wired", Path: display}, nil
 }
 
-func importLine(spec bridgeSpec, names Names) string {
+func importLine(spec entrySpec, names Names) string {
 	path := fmt.Sprintf("%s/internal/modules/%s/%s", names.Module, names.Lower, spec.Layer)
 
 	return "\t" + names.Lower + spec.Layer + " " + strconv.Quote(path) + "\n"

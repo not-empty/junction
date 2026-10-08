@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/not-empty/bridge/platform/apperror"
-	"github.com/not-empty/bridge/platform/validation"
+	"github.com/not-empty/junction/platform/apperror"
+	"github.com/not-empty/junction/platform/validation"
 )
 
 func Decode[T any](raw []byte, data *T) error {

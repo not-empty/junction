@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/not-empty/bridge/platform/apperror"
-	"github.com/not-empty/bridge/platform/validation"
+	"github.com/not-empty/junction/platform/apperror"
+	"github.com/not-empty/junction/platform/validation"
 )
 
 const unknownFieldPrefix = "json: unknown field "

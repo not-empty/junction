@@ -5,7 +5,7 @@ type fileSpec struct {
 	Path     string
 }
 
-type bridgeSpec struct {
+type entrySpec struct {
 	Layer  string
 	Files  []fileSpec
 	Target string
@@ -19,7 +19,7 @@ var coreFiles = []fileSpec{
 	{Template: "service_test.go.tmpl", Path: "service/{{.Snake}}_service_test.go"},
 }
 
-var bridges = map[string]bridgeSpec{
+var entrySpecs = map[string]entrySpec{
 	"api": {
 		Layer: "controller",
 		Files: []fileSpec{
@@ -49,4 +49,4 @@ var bridges = map[string]bridgeSpec{
 	},
 }
 
-var bridgeOrder = []string{"api", "worker", "event"}
+var entryOrder = []string{"api", "worker", "event"}

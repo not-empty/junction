@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/not-empty/bridge/platform/config"
-	"github.com/not-empty/bridge/platform/database"
+	"github.com/not-empty/junction/platform/config"
+	"github.com/not-empty/junction/platform/database"
 )
 
 // Deps holds what the domain modules use, never a delivery client.

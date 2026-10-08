@@ -1,0 +1,5 @@
+.git
+.env
+junction
+docker
+docker-compose.yml

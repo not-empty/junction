@@ -7,8 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/not-empty/bridge/platform/bootstrap"
-	"github.com/not-empty/bridge/platform/httpserver"
+	"github.com/not-empty/junction/platform/bootstrap"
+	"github.com/not-empty/junction/platform/httpserver"
 )
 
 func main() {

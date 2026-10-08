@@ -1,4 +1,4 @@
-module github.com/not-empty/bridge
+module github.com/not-empty/junction
 
 go 1.26.7
 

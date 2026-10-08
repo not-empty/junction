@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/not-empty/bridge/platform/apperror"
+	"github.com/not-empty/junction/platform/apperror"
 )
 
 var validate = newValidator()

@@ -6,25 +6,25 @@ import (
 	"os"
 )
 
-const usage = `bridge - scaffolds domains and their delivery bridges
+const usage = `junction - scaffolds domains and the entries that reach them
 
 usage:
-  bridge api <name> [--table=name]      HTTP bridge, mounts it in cmd/api/modules.go
-  bridge worker <name> [--table=name]   queue bridge, mounts it in cmd/worker/modules.go
-  bridge event <name> [--table=name]    event bridge, mounts it in cmd/event/modules.go
-  bridge migration <name>               empty migration pair in migrations/
-  bridge table <name>                   create table migration pair, without a domain
-  bridge status                         show domains and their bridges
+  junction api <name> [--table=name]      HTTP entry, mounts it in cmd/api/modules.go
+  junction worker <name> [--table=name]   queue entry, mounts it in cmd/worker/modules.go
+  junction event <name> [--table=name]    event entry, mounts it in cmd/event/modules.go
+  junction migration <name>               empty migration pair in migrations/
+  junction table <name>                   create table migration pair, without a domain
+  junction status                         show domains and their entries
 
 Each command creates the shared core (domain, repository, service) when it is
-missing and reuses it when it is already there, so bridges can be added in any
+missing and reuses it when it is already there, so entries can be added in any
 order and any combination.
 `
 
 func main() {
 	err := run(os.Args[1:])
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "bridge:", err)
+		fmt.Fprintln(os.Stderr, "junction:", err)
 		os.Exit(1)
 	}
 }
@@ -51,7 +51,7 @@ func run(args []string) error {
 
 	if args[0] == "migration" {
 		if len(args) != 2 {
-			return fmt.Errorf("usage: bridge migration <name>")
+			return fmt.Errorf("usage: junction migration <name>")
 		}
 
 		changes, err := manualMigration(root, module, args[1])
@@ -65,7 +65,7 @@ func run(args []string) error {
 
 	if args[0] == "table" {
 		if len(args) != 2 {
-			return fmt.Errorf("usage: bridge table <name>")
+			return fmt.Errorf("usage: junction table <name>")
 		}
 
 		changes, err := tableMigration(root, module, args[1])
@@ -77,7 +77,7 @@ func run(args []string) error {
 		return nil
 	}
 
-	if _, ok := bridges[args[0]]; !ok {
+	if _, ok := entrySpecs[args[0]]; !ok {
 		return fmt.Errorf("unknown command %q\n\n%s", args[0], usage)
 	}
 
@@ -87,7 +87,7 @@ func run(args []string) error {
 func newFlagSet(name string) *flag.FlagSet {
 	flags := flag.NewFlagSet(name, flag.ContinueOnError)
 	flags.Usage = func() {
-		fmt.Fprintf(os.Stderr, "usage: bridge %s <name> [--table=name]\n", name)
+		fmt.Fprintf(os.Stderr, "usage: junction %s <name> [--table=name]\n", name)
 		flags.PrintDefaults()
 	}
 

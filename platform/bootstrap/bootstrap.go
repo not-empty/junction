@@ -5,8 +5,8 @@ package bootstrap
 import (
 	"net/http"
 
-	"github.com/not-empty/bridge/platform/event"
-	"github.com/not-empty/bridge/platform/queue"
+	"github.com/not-empty/junction/platform/event"
+	"github.com/not-empty/junction/platform/queue"
 )
 
 type HTTPModule func(deps Deps, mux *http.ServeMux)

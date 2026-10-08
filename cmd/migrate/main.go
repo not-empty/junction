@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/not-empty/bridge/platform/config"
-	"github.com/not-empty/bridge/platform/migration"
+	"github.com/not-empty/junction/platform/config"
+	"github.com/not-empty/junction/platform/migration"
 )
 
 const usage = `migrate - applies the versioned schema in migrations/
