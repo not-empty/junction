@@ -12,7 +12,7 @@ import (
 
 type {{.Pascal}}ServiceInterface interface {
 	Create(ctx context.Context, input domain.{{.Pascal}}Register) (string, error)
-	List(ctx context.Context) ([]domain.{{.Pascal}}, error)
+	List(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, string, error)
 	GetOne(ctx context.Context, id string) (domain.{{.Pascal}}, error)
 	Update(ctx context.Context, id string, input domain.{{.Pascal}}Update) error
 	Delete(ctx context.Context, id string) error
@@ -51,8 +51,28 @@ func (s *{{.Pascal}}Service) GetOne(ctx context.Context, id string) (domain.{{.P
 	return {{.Camel}}Data, err
 }
 
-func (s *{{.Pascal}}Service) List(ctx context.Context) ([]domain.{{.Pascal}}, error) {
-	return s.repository.List(ctx)
+func (s *{{.Pascal}}Service) List(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, string, error) {
+	if cursor != "" {
+		_, err := database.VerifyULID(cursor)
+		if err != nil {
+			return nil, "", apperror.New(apperror.BadRequest, "invalid cursor")
+		}
+	}
+
+	{{.Camel}}List, err := s.repository.List(ctx, cursor)
+
+	if err != nil {
+		return nil, "", err
+	}
+
+	// The repository fetches one row past the page to tell whether another page exists.
+	if len({{.Camel}}List) <= domain.DefaultPageSize {
+		return {{.Camel}}List, "", nil
+	}
+
+	{{.Camel}}List = {{.Camel}}List[:domain.DefaultPageSize]
+
+	return {{.Camel}}List, {{.Camel}}List[len({{.Camel}}List)-1].ID, nil
 }
 
 func (s *{{.Pascal}}Service) Update(ctx context.Context, id string, input domain.{{.Pascal}}Update) error {

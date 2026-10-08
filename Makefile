@@ -1,4 +1,4 @@
-.PHONY: api worker event status test cover migrate migrate-down migrate-status migration
+.PHONY: api worker event status test cover migrate migrate-down migrate-status migration table
 
 api:
 	@go run ./tools/bridge api $(name) $(if $(table),--table=$(table))
@@ -23,6 +23,9 @@ migrate-status:
 
 migration:
 	@go run ./tools/bridge migration $(name)
+
+table:
+	@go run ./tools/bridge table $(name)
 
 test:
 	@go test ./...

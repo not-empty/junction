@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"{{.Module}}/internal/modules/{{.Lower}}/domain"
@@ -10,11 +11,13 @@ import (
 	"{{.Module}}/platform/database"
 )
 
+const validCursor = "01ARZ3NDEKTSV4RRFFQ69G5FAV"
+
 // Fill only the function the test needs; the others return zero values.
 type repositoryMock struct {
 	create func(ctx context.Context, {{.Camel}} domain.{{.Pascal}}Register) (string, error)
 	getOne func(ctx context.Context, id string) (domain.{{.Pascal}}, error)
-	list   func(ctx context.Context) ([]domain.{{.Pascal}}, error)
+	list   func(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, error)
 	update func(ctx context.Context, id string, {{.Camel}} domain.{{.Pascal}}Update) error
 	remove func(ctx context.Context, id string) error
 }
@@ -35,12 +38,12 @@ func (m repositoryMock) GetOne(ctx context.Context, id string) (domain.{{.Pascal
 	return m.getOne(ctx, id)
 }
 
-func (m repositoryMock) List(ctx context.Context) ([]domain.{{.Pascal}}, error) {
+func (m repositoryMock) List(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, error) {
 	if m.list == nil {
 		return nil, nil
 	}
 
-	return m.list(ctx)
+	return m.list(ctx, cursor)
 }
 
 func (m repositoryMock) Update(ctx context.Context, id string, {{.Camel}} domain.{{.Pascal}}Update) error {
@@ -100,6 +103,66 @@ func TestCreateReturnsTheNewID(t *testing.T) {
 	}
 }
 
+func TestListWithoutAnotherPageReturnsNoCursor(t *testing.T) {
+	service := New{{.Pascal}}Service(repositoryMock{
+		list: func(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, error) {
+			return make{{.Pascal}}List(domain.DefaultPageSize), nil
+		},
+	})
+
+	{{.Camel}}List, nextCursor, err := service.List(context.Background(), "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len({{.Camel}}List) != domain.DefaultPageSize {
+		t.Errorf("got %d items, want %d", len({{.Camel}}List), domain.DefaultPageSize)
+	}
+
+	if nextCursor != "" {
+		t.Errorf("got cursor %q, want none", nextCursor)
+	}
+}
+
+func TestListWithAnotherPageTrimsAndReturnsTheCursor(t *testing.T) {
+	service := New{{.Pascal}}Service(repositoryMock{
+		list: func(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, error) {
+			if cursor != validCursor {
+				t.Errorf("got cursor %q, want %q", cursor, validCursor)
+			}
+
+			return make{{.Pascal}}List(domain.DefaultPageSize + 1), nil
+		},
+	})
+
+	{{.Camel}}List, nextCursor, err := service.List(context.Background(), validCursor)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len({{.Camel}}List) != domain.DefaultPageSize {
+		t.Errorf("got %d items, want %d", len({{.Camel}}List), domain.DefaultPageSize)
+	}
+
+	last := {{.Camel}}List[len({{.Camel}}List)-1].ID
+	if nextCursor != last {
+		t.Errorf("got cursor %q, want the last item id %q", nextCursor, last)
+	}
+}
+
+func TestListRejectsAnInvalidCursor(t *testing.T) {
+	service := New{{.Pascal}}Service(repositoryMock{
+		list: func(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, error) {
+			t.Fatal("the repository must not be reached when the cursor is invalid")
+			return nil, nil
+		},
+	})
+
+	_, _, err := service.List(context.Background(), "not-a-ulid")
+
+	assertKind(t, err, apperror.BadRequest)
+}
+
 func TestUpdateMapsNotFound(t *testing.T) {
 	service := New{{.Pascal}}Service(repositoryMock{
 		update: func(ctx context.Context, id string, {{.Camel}} domain.{{.Pascal}}Update) error {
@@ -122,6 +185,16 @@ func TestDeleteMapsNotFound(t *testing.T) {
 	err := service.Delete(context.Background(), "whatever")
 
 	assertKind(t, err, apperror.NotFound)
+}
+
+func make{{.Pascal}}List(size int) []domain.{{.Pascal}} {
+	{{.Camel}}List := make([]domain.{{.Pascal}}, size)
+
+	for i := range {{.Camel}}List {
+		{{.Camel}}List[i].ID = fmt.Sprintf("id-%02d", i)
+	}
+
+	return {{.Camel}}List
 }
 
 func assertKind(t *testing.T, err error, want apperror.Kind) {

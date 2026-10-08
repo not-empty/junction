@@ -29,7 +29,9 @@ func (m serviceMock) GetOne(ctx context.Context, id string) (domain.{{.Pascal}},
 	return domain.{{.Pascal}}{}, nil
 }
 
-func (m serviceMock) List(ctx context.Context) ([]domain.{{.Pascal}}, error) { return nil, nil }
+func (m serviceMock) List(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, string, error) {
+	return nil, "", nil
+}
 
 func (m serviceMock) Update(ctx context.Context, id string, input domain.{{.Pascal}}Update) error {
 	return nil

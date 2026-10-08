@@ -11,7 +11,7 @@ import (
 type {{.Pascal}}RepositoryInterface interface {
 	Create(ctx context.Context, {{.Camel}} domain.{{.Pascal}}Register) (string, error)
 	GetOne(ctx context.Context, id string) (domain.{{.Pascal}}, error)
-	List(ctx context.Context) ([]domain.{{.Pascal}}, error)
+	List(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, error)
 	Update(ctx context.Context, id string, {{.Camel}} domain.{{.Pascal}}Update) error
 	Delete(ctx context.Context, id string) error
 }
@@ -58,7 +58,18 @@ func (r *{{.Pascal}}Repository) GetOne(ctx context.Context, id string) (domain.{
 	)
 }
 
-func (r *{{.Pascal}}Repository) List(ctx context.Context) ([]domain.{{.Pascal}}, error) {
+func (r *{{.Pascal}}Repository) List(ctx context.Context, cursor string) ([]domain.{{.Pascal}}, error) {
+	query := "SELECT id FROM {{.Table}} WHERE deleted_at IS NULL"
+	args := []any{}
+
+	if cursor != "" {
+		query += " AND id < ?"
+		args = append(args, cursor)
+	}
+
+	query += " ORDER BY id DESC LIMIT ?"
+	args = append(args, domain.DefaultPageSize+1)
+
 	return database.QueryMany(
 		ctx,
 		r.db,
@@ -68,7 +79,8 @@ func (r *{{.Pascal}}Repository) List(ctx context.Context) ([]domain.{{.Pascal}},
 
 			return {{.Camel}}, err
 		},
-		"SELECT id FROM {{.Table}} WHERE deleted_at IS NULL ORDER BY id LIMIT 25",
+		query,
+		args...,
 	)
 }
 

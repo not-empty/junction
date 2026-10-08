@@ -13,6 +13,7 @@ usage:
   bridge worker <name> [--table=name]   queue bridge, mounts it in cmd/worker/modules.go
   bridge event <name> [--table=name]    event bridge, mounts it in cmd/event/modules.go
   bridge migration <name>               empty migration pair in migrations/
+  bridge table <name>                   create table migration pair, without a domain
   bridge status                         show domains and their bridges
 
 Each command creates the shared core (domain, repository, service) when it is
@@ -54,6 +55,20 @@ func run(args []string) error {
 		}
 
 		changes, err := manualMigration(root, module, args[1])
+		if err != nil {
+			return err
+		}
+
+		report(changes)
+		return nil
+	}
+
+	if args[0] == "table" {
+		if len(args) != 2 {
+			return fmt.Errorf("usage: bridge table <name>")
+		}
+
+		changes, err := tableMigration(root, module, args[1])
 		if err != nil {
 			return err
 		}

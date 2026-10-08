@@ -52,8 +52,8 @@ func (c *{{.Pascal}}Controller) GetOne(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *{{.Pascal}}Controller) List(w http.ResponseWriter, r *http.Request) {
-	response, err := c.service.List(r.Context())
-	httpx.Response(w, http.StatusOK, response, err)
+	response, nextCursor, err := c.service.List(r.Context(), r.URL.Query().Get("cursor"))
+	httpx.ResponsePage(w, http.StatusOK, response, nextCursor, err)
 }
 
 func (c *{{.Pascal}}Controller) Delete(w http.ResponseWriter, r *http.Request) {
