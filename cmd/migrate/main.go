@@ -43,23 +43,23 @@ func run(args []string) error {
 
 	switch args[0] {
 	case "up":
-		return up(cfg.DatabaseDSN)
+		return up(cfg.DatabaseDSN, cfg.MigrationsTable)
 	case "down":
-		return down(cfg.DatabaseDSN)
+		return down(cfg.DatabaseDSN, cfg.MigrationsTable)
 	case "status":
-		return status(cfg.DatabaseDSN)
+		return status(cfg.DatabaseDSN, cfg.MigrationsTable)
 	default:
 		return fmt.Errorf("unknown command %q\n\n%s", args[0], usage)
 	}
 }
 
-func up(dsn string) error {
-	before, _, err := migration.Version(dsn)
+func up(dsn, table string) error {
+	before, _, err := migration.Version(dsn, table)
 	if err != nil {
 		return err
 	}
 
-	err = migration.Up(dsn)
+	err = migration.Up(dsn, table)
 	if errors.Is(err, migration.ErrNoChange) {
 		slog.Info("schema already up to date", "version", before)
 		return nil
@@ -69,7 +69,7 @@ func up(dsn string) error {
 		return err
 	}
 
-	after, _, err := migration.Version(dsn)
+	after, _, err := migration.Version(dsn, table)
 	if err != nil {
 		return err
 	}
@@ -78,13 +78,13 @@ func up(dsn string) error {
 	return nil
 }
 
-func down(dsn string) error {
-	before, _, err := migration.Version(dsn)
+func down(dsn, table string) error {
+	before, _, err := migration.Version(dsn, table)
 	if err != nil {
 		return err
 	}
 
-	err = migration.Down(dsn)
+	err = migration.Down(dsn, table)
 	if errors.Is(err, migration.ErrNoChange) {
 		slog.Info("nothing to roll back")
 		return nil
@@ -94,7 +94,7 @@ func down(dsn string) error {
 		return err
 	}
 
-	after, _, err := migration.Version(dsn)
+	after, _, err := migration.Version(dsn, table)
 	if err != nil {
 		return err
 	}
@@ -103,12 +103,12 @@ func down(dsn string) error {
 	return nil
 }
 
-func status(dsn string) error {
-	version, dirty, err := migration.Version(dsn)
+func status(dsn, table string) error {
+	version, dirty, err := migration.Version(dsn, table)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("schema status", "version", version, "dirty", dirty)
+	slog.Info("schema status", "table", table, "version", version, "dirty", dirty)
 	return nil
 }
