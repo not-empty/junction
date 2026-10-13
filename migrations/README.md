@@ -10,7 +10,7 @@ once per domain. Write one by hand with `make migration name=<what_it_does>`.
 
 A migration that already ran somewhere is history: never edit it and never
 delete it. To drop a table, add a new migration that drops it — removing the
-file that created it leaves `schema_migrations` pointing at a version that no
+file that created it leaves the migrations table pointing at a version that no
 longer exists on disk.
 
 ## Dirty state
@@ -20,3 +20,12 @@ version marked `dirty`, and every later run refuses to start until someone
 fixes the schema by hand and clears the flag:
 
     UPDATE schema_migrations SET dirty = 0 WHERE version = <v>;
+
+The table is `schema_migrations` unless `MIGRATIONS_TABLE` says otherwise.
+
+## Sharing a database
+
+Several services built on junction can use the same database. Each one tracks
+its own version in a separate table: set a distinct `MIGRATIONS_TABLE` per
+service (e.g. `orders_schema_migrations`), and keep the tables each service
+creates disjoint from the others'.

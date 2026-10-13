@@ -183,6 +183,7 @@ Every process reads its settings from environment variables. A `.env` file in th
 | Variable | Used by | Default | Description |
 |----------|---------|---------|-------------|
 | `DATABASE_DSN` | all | required | MySQL DSN, e.g. `user:pass@tcp(host:3306)/db` |
+| `MIGRATIONS_TABLE` | migrate | `schema_migrations` | Table that tracks the applied version. Give each service its own name to share one database |
 | `PORT` | api | `8080` | HTTP port |
 | `CORS_ALLOWED_ORIGINS` | api | required | `*`, or a comma-separated list. `https://*.example.com` matches any subdomain |
 | `MAX_BODY_BYTES` | api | `1048576` | Largest accepted request body |
