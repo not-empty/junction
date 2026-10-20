@@ -9,8 +9,11 @@ import (
 	"github.com/joho/godotenv"
 )
 
+const defaultMigrationsTable = "schema_migrations"
+
 type Config struct {
-	DatabaseDSN string
+	DatabaseDSN     string
+	MigrationsTable string
 }
 
 func Load() (Config, error) {
@@ -20,7 +23,12 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		DatabaseDSN: os.Getenv("DATABASE_DSN"),
+		DatabaseDSN:     os.Getenv("DATABASE_DSN"),
+		MigrationsTable: os.Getenv("MIGRATIONS_TABLE"),
+	}
+
+	if cfg.MigrationsTable == "" {
+		cfg.MigrationsTable = defaultMigrationsTable
 	}
 
 	if cfg.DatabaseDSN == "" {
