@@ -7,6 +7,10 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
+
+	"github.com/not-empty/junction/platform/config"
 )
 
 const (
@@ -18,6 +22,7 @@ const (
 )
 
 type Config struct {
+	Driver          string
 	DSN             string
 	MaxOpenConns    int
 	MaxIdleConns    int
@@ -27,26 +32,19 @@ type Config struct {
 
 type DB struct {
 	pool *sql.DB
+	// rebind rewrites the ? placeholders the repositories are written with
+	// into the driver's own syntax. Nil when the driver already takes ?.
+	rebind func(string) string
 }
 
 type txKey struct{}
 
 func Open(ctx context.Context, cfg Config) (*DB, error) {
-	mysqlCfg, err := mysql.ParseDSN(cfg.DSN)
+	pool, rebind, err := openPool(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("parsing database DSN: %w", err)
+		return nil, err
 	}
 
-	mysqlCfg.ParseTime = true
-	mysqlCfg.Loc = time.UTC
-	mysqlCfg.ClientFoundRows = true
-
-	connector, err := mysql.NewConnector(mysqlCfg)
-	if err != nil {
-		return nil, fmt.Errorf("creating database connector: %w", err)
-	}
-
-	pool := sql.OpenDB(connector)
 	pool.SetMaxOpenConns(valueOrDefault(cfg.MaxOpenConns, defaultMaxOpenConns))
 	pool.SetMaxIdleConns(valueOrDefault(cfg.MaxIdleConns, defaultMaxIdleConns))
 	pool.SetConnMaxLifetime(valueOrDefault(cfg.ConnMaxLifetime, defaultConnMaxLifetime))
@@ -61,11 +59,55 @@ func Open(ctx context.Context, cfg Config) (*DB, error) {
 		return nil, fmt.Errorf("pinging database: %w", err)
 	}
 
-	return &DB{pool: pool}, nil
+	return &DB{pool: pool, rebind: rebind}, nil
+}
+
+func openPool(cfg Config) (*sql.DB, func(string) string, error) {
+	switch cfg.Driver {
+	case "", config.DriverMySQL:
+		pool, err := openMySQL(cfg.DSN)
+		return pool, nil, err
+	case config.DriverPostgres:
+		pool, err := openPostgres(cfg.DSN)
+		return pool, rebindDollar, err
+	default:
+		return nil, nil, fmt.Errorf("unsupported database driver %q", cfg.Driver)
+	}
+}
+
+func openMySQL(dsn string) (*sql.DB, error) {
+	mysqlCfg, err := mysql.ParseDSN(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("parsing database DSN: %w", err)
+	}
+
+	mysqlCfg.ParseTime = true
+	mysqlCfg.Loc = time.UTC
+	// Reports matched rows instead of changed ones, as Postgres does, so an
+	// UPDATE that writes the same values is not taken for a missing row.
+	mysqlCfg.ClientFoundRows = true
+
+	connector, err := mysql.NewConnector(mysqlCfg)
+	if err != nil {
+		return nil, fmt.Errorf("creating database connector: %w", err)
+	}
+
+	return sql.OpenDB(connector), nil
+}
+
+func openPostgres(dsn string) (*sql.DB, error) {
+	pgCfg, err := pgx.ParseConfig(dsn)
+	if err != nil {
+		return nil, fmt.Errorf("parsing database DSN: %w", err)
+	}
+
+	pgCfg.RuntimeParams["timezone"] = "UTC"
+
+	return stdlib.OpenDB(*pgCfg), nil
 }
 
 // NewFromPool skips the DSN parsing and the ping Open does, so a test can
-// inject a pool backed by a fake driver.
+// inject a pool backed by a fake driver. Queries keep their ? placeholders.
 func NewFromPool(pool *sql.DB) *DB {
 	return &DB{pool: pool}
 }
@@ -95,6 +137,14 @@ func (d *DB) WithTx(ctx context.Context, fn func(ctx context.Context) error) err
 	}
 
 	return tx.Commit()
+}
+
+func (d *DB) query(query string) string {
+	if d.rebind == nil {
+		return query
+	}
+
+	return d.rebind(query)
 }
 
 func (d *DB) querier(ctx context.Context) querier {

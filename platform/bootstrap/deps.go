@@ -70,7 +70,8 @@ func MountDeps(ctx context.Context) (Deps, func() error, error) {
 
 func openDatabase(ctx context.Context, cfg config.Config, deps *Deps) (func() error, error) {
 	db, err := database.Open(ctx, database.Config{
-		DSN: cfg.DatabaseDSN,
+		Driver: cfg.DatabaseDriver,
+		DSN:    cfg.DatabaseDSN,
 	})
 
 	if err != nil {

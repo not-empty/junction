@@ -1,7 +1,9 @@
 services:
+  # Only the database picked by COMPOSE_PROFILES in .env starts: mysql or postgres.
   mysql:
     image: mysql:26.7.0
     container_name: junction-mysql
+    profiles: ["mysql"]
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -23,6 +25,28 @@ services:
       nofile:
         soft: 65536
         hard: 65536
+
+  postgres:
+    image: postgres:18.7-alpine
+    container_name: junction-postgres
+    profiles: ["postgres"]
+    command: ["postgres", "-c", "config_file=/etc/postgresql/postgresql.conf"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: UTC
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+      - ./docker/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
 
   redis:
     image: redis:8.10.1-alpine
@@ -74,5 +98,6 @@ services:
 
 volumes:
   mysql-data:
+  postgres-data:
   redis-data:
   kafka-data:
