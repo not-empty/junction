@@ -51,15 +51,14 @@ go run ./cmd/api            # http://localhost:8080/health
 
 ### Choosing the database
 
-Junction runs on MySQL (the default) or Postgres, one per project. The choice is three lines of `.env`:
+Junction runs on MySQL (the default) or Postgres, one per project. The choice is two lines of `.env`:
 
 ```
 DATABASE_DRIVER=postgres
 DATABASE_DSN=postgres://junction:junction@localhost:5432/junction?sslmode=disable
-COMPOSE_PROFILES=postgres
 ```
 
-`COMPOSE_PROFILES` makes `docker compose up` start only that database. `DATABASE_DRIVER` also picks the SQL dialect of the migrations the generator writes, so set it before the first `make api|worker|event|table`: the migrations in `migrations/` are written for one database and are not portable.
+`.env.example` sets `COMPOSE_PROFILES=${DATABASE_DRIVER:-mysql}`, so `docker compose up` starts only that database. Run `docker compose down` before switching: the container of the previous one keeps running otherwise. `DATABASE_DRIVER` also picks the SQL dialect of the migrations the generator writes, so set it before the first `make api|worker|event|table`: the migrations in `migrations/` are written for one database and are not portable.
 
 Repositories write their placeholders as `?` on both. On Postgres they become `$1, $2, ...` before the query is sent; a `?` inside a string literal, a quoted identifier or a comment is kept, and `??` writes a literal `?`, for the jsonb operators.
 
