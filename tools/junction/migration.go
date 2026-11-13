@@ -1,10 +1,16 @@
 package main
 
 import (
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"time"
+
+	"github.com/joho/godotenv"
+
+	"github.com/not-empty/junction/platform/config"
 )
 
 const migrationsDir = "migrations"
@@ -30,8 +36,24 @@ func domainMigration(root string, names Names) ([]change, error) {
 		return []change{{Action: "exists", Path: found}}, nil
 	}
 
+	driver, err := databaseDriver(root)
+	if err != nil {
+		return nil, err
+	}
+
 	return writeMigration(root, migrationData{Names: names, Title: title},
-		"migration_up.sql.tmpl", "migration_down.sql.tmpl")
+		"migration_up_"+driver+".sql.tmpl", "migration_down_"+driver+".sql.tmpl")
+}
+
+// databaseDriver picks the SQL dialect from DATABASE_DRIVER, read from the
+// environment or the project's .env the same way the app reads it.
+func databaseDriver(root string) (string, error) {
+	err := godotenv.Load(filepath.Join(root, ".env"))
+	if err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return "", fmt.Errorf("loading .env: %w", err)
+	}
+
+	return config.Driver()
 }
 
 // tableMigration writes the create table pair of a domain for a table that

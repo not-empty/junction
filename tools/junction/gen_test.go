@@ -232,6 +232,23 @@ func TestTableDefaultsToTheGivenName(t *testing.T) {
 }
 
 func TestDomainMigrationIsVersionedAndWrittenOnce(t *testing.T) {
+	cases := []struct {
+		driver  string
+		columns []string
+	}{
+		{driver: "mysql", columns: []string{"`id`", "`name`", "`created_at`", "`updated_at`", "`deleted_at`", "ENGINE=InnoDB"}},
+		{driver: "postgres", columns: []string{`"id"`, `"name"`, `"created_at"`, `"updated_at"`, `"deleted_at"`, `COLLATE "C"`, "TIMESTAMP(6)"}},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.driver, func(t *testing.T) {
+			t.Setenv("DATABASE_DRIVER", tc.driver)
+			testDomainMigration(t, tc.columns)
+		})
+	}
+}
+
+func testDomainMigration(t *testing.T, columns []string) {
 	root, err := findRoot()
 	if err != nil {
 		t.Fatal(err)
@@ -294,7 +311,7 @@ func TestDomainMigrationIsVersionedAndWrittenOnce(t *testing.T) {
 	}
 
 	// The DDL must carry the columns the generated repository queries.
-	for _, column := range []string{names.Table, "`id`", "`name`", "`created_at`", "`updated_at`", "`deleted_at`"} {
+	for _, column := range append([]string{names.Table}, columns...) {
 		if !bytes.Contains(content, []byte(column)) {
 			t.Errorf("the migration is missing %s", column)
 		}
@@ -316,5 +333,14 @@ func TestDomainMigrationIsVersionedAndWrittenOnce(t *testing.T) {
 
 	if len(matches) != 1 {
 		t.Fatalf("got %d up migrations, want exactly 1", len(matches))
+	}
+}
+
+func TestDatabaseDriverRejectsUnknownValue(t *testing.T) {
+	t.Setenv("DATABASE_DRIVER", "oracle")
+
+	_, err := databaseDriver(t.TempDir())
+	if err == nil {
+		t.Fatal("an unknown DATABASE_DRIVER was accepted")
 	}
 }
