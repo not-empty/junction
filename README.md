@@ -42,12 +42,25 @@ Requirements: Go 1.26.7+, Docker with Compose.
 
 ```
 cp .env.example .env
-docker compose up -d        # MySQL, Redis and Kafka for local development
+docker compose up -d        # MySQL or Postgres, Redis and Kafka for local development
 make migrate                # apply the schema in migrations/
 go run ./cmd/api            # http://localhost:8080/health
 ```
 
-`docker-compose.yml` only runs the infrastructure; the application runs on your machine with `go run`. Every port is bound to `127.0.0.1`, and MySQL and Redis load their tuned settings from `docker/`.
+`docker-compose.yml` only runs the infrastructure; the application runs on your machine with `go run`. Every port is bound to `127.0.0.1`, and the database and Redis load their tuned settings from `docker/`.
+
+### Choosing the database
+
+Junction runs on MySQL (the default) or Postgres, one per project. The choice is two lines of `.env`:
+
+```
+DATABASE_DRIVER=postgres
+DATABASE_DSN=postgres://junction:junction@localhost:5432/junction?sslmode=disable
+```
+
+`.env.example` sets `COMPOSE_PROFILES=${DATABASE_DRIVER:-mysql}`, so `docker compose up` starts only that database. Run `docker compose down` before switching: the container of the previous one keeps running otherwise. `DATABASE_DRIVER` also picks the SQL dialect of the migrations the generator writes, so set it before the first `make api|worker|event|table`: the migrations in `migrations/` are written for one database and are not portable.
+
+Repositories write their placeholders as `?` on both. On Postgres they become `$1, $2, ...` before the query is sent; a `?` inside a string literal, a quoted identifier or a comment is kept, and `??` writes a literal `?`, for the jsonb operators.
 
 ---
 
@@ -172,7 +185,7 @@ make migration name=add_price      # empty pair for a change written by hand
 make table name=product_tag        # create table pair, without a domain (e.g. a pivot table)
 ```
 
-Migrations are append-only, and a failed one leaves the schema marked dirty, since MySQL cannot roll back DDL. `migrations/README.md` explains both.
+Migrations are append-only, and a failed one leaves the version marked dirty. `migrations/README.md` explains both, and how to recover on each database.
 
 ---
 
@@ -182,7 +195,8 @@ Every process reads its settings from environment variables. A `.env` file in th
 
 | Variable | Used by | Default | Description |
 |----------|---------|---------|-------------|
-| `DATABASE_DSN` | all | required | MySQL DSN, e.g. `user:pass@tcp(host:3306)/db` |
+| `DATABASE_DRIVER` | all | `mysql` | `mysql` or `postgres`. Also picks the dialect of generated migrations |
+| `DATABASE_DSN` | all | required | MySQL DSN, e.g. `user:pass@tcp(host:3306)/db`, or Postgres URL, e.g. `postgres://user:pass@host:5432/db?sslmode=disable` |
 | `MIGRATIONS_TABLE` | migrate | `schema_migrations` | Table that tracks the applied version. Give each service its own name to share one database |
 | `PORT` | api | `8080` | HTTP port |
 | `CORS_ALLOWED_ORIGINS` | api | required | `*`, or a comma-separated list. `https://*.example.com` matches any subdomain |
@@ -192,9 +206,9 @@ Every process reads its settings from environment variables. A `.env` file in th
 | `KAFKA_BROKERS` | event | required | Comma-separated broker list |
 | `KAFKA_GROUP_ID` | event | `junction` | Consumer group |
 
-`MYSQL_*`, `MYSQL_PORT` and `KAFKA_PORT` in `.env.example` are only read by `docker-compose.yml`.
+`COMPOSE_PROFILES`, `MYSQL_*`, `POSTGRES_*` and `KAFKA_PORT` in `.env.example` are only read by `docker-compose.yml`.
 
-Every process connects to MySQL on start, since all entries share the same repositories. A new shared dependency is declared once, in `platform/bootstrap/deps.go`, and becomes available to every mode without touching `cmd/`.
+Every process connects to the database on start, since all entries share the same repositories. A new shared dependency is declared once, in `platform/bootstrap/deps.go`, and becomes available to every mode without touching `cmd/`.
 
 ---
 
@@ -231,7 +245,7 @@ platform/           shared building blocks, free of business rules
 ├── apperror/       error kinds every entry understands
 ├── bootstrap/      dependencies and module mounting for each mode
 ├── config/         .env and environment loading
-├── database/       MySQL pool, transactions, query helpers, ULIDs
+├── database/       MySQL or Postgres pool, transactions, query helpers, ULIDs
 ├── event/          event registry, dispatcher and Kafka subscriber
 ├── httpserver/     server, graceful shutdown, recover, CORS and body limit middleware
 ├── httpx/          JSON request decoding and responses
@@ -240,7 +254,7 @@ platform/           shared building blocks, free of business rules
 ├── queue/          queue registry and omniq adapter
 └── validation/     struct validation into field errors
 tools/junction/     the generator behind the make targets
-docker/             MySQL and Redis settings for docker compose
+docker/             MySQL, Postgres and Redis settings for docker compose
 ```
 
 `database.DB.WithTx` runs a function inside a transaction carried by the context, so repositories called within it join the same transaction without changing their signatures.

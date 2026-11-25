@@ -1,0 +1,10 @@
+CREATE TABLE "{{.Table}}" (
+    "id" CHAR(26) COLLATE "C" NOT NULL,
+    "name" VARCHAR(255) NOT NULL,
+    "created_at" TIMESTAMP(6) NOT NULL,
+    "updated_at" TIMESTAMP(6) NOT NULL,
+    "deleted_at" TIMESTAMP(6) NULL DEFAULT NULL,
+    PRIMARY KEY ("id")
+);
+
+CREATE INDEX "idx_{{.Table}}_deleted_at" ON "{{.Table}}" ("deleted_at");

@@ -43,23 +43,23 @@ func run(args []string) error {
 
 	switch args[0] {
 	case "up":
-		return up(cfg.DatabaseDSN, cfg.MigrationsTable)
+		return up(cfg)
 	case "down":
-		return down(cfg.DatabaseDSN, cfg.MigrationsTable)
+		return down(cfg)
 	case "status":
-		return status(cfg.DatabaseDSN, cfg.MigrationsTable)
+		return status(cfg)
 	default:
 		return fmt.Errorf("unknown command %q\n\n%s", args[0], usage)
 	}
 }
 
-func up(dsn, table string) error {
-	before, _, err := migration.Version(dsn, table)
+func up(cfg config.Config) error {
+	before, _, err := migration.Version(cfg)
 	if err != nil {
 		return err
 	}
 
-	err = migration.Up(dsn, table)
+	err = migration.Up(cfg)
 	if errors.Is(err, migration.ErrNoChange) {
 		slog.Info("schema already up to date", "version", before)
 		return nil
@@ -69,7 +69,7 @@ func up(dsn, table string) error {
 		return err
 	}
 
-	after, _, err := migration.Version(dsn, table)
+	after, _, err := migration.Version(cfg)
 	if err != nil {
 		return err
 	}
@@ -78,13 +78,13 @@ func up(dsn, table string) error {
 	return nil
 }
 
-func down(dsn, table string) error {
-	before, _, err := migration.Version(dsn, table)
+func down(cfg config.Config) error {
+	before, _, err := migration.Version(cfg)
 	if err != nil {
 		return err
 	}
 
-	err = migration.Down(dsn, table)
+	err = migration.Down(cfg)
 	if errors.Is(err, migration.ErrNoChange) {
 		slog.Info("nothing to roll back")
 		return nil
@@ -94,7 +94,7 @@ func down(dsn, table string) error {
 		return err
 	}
 
-	after, _, err := migration.Version(dsn, table)
+	after, _, err := migration.Version(cfg)
 	if err != nil {
 		return err
 	}
@@ -103,12 +103,12 @@ func down(dsn, table string) error {
 	return nil
 }
 
-func status(dsn, table string) error {
-	version, dirty, err := migration.Version(dsn, table)
+func status(cfg config.Config) error {
+	version, dirty, err := migration.Version(cfg)
 	if err != nil {
 		return err
 	}
 
-	slog.Info("schema status", "table", table, "version", version, "dirty", dirty)
+	slog.Info("schema status", "driver", cfg.DatabaseDriver, "table", cfg.MigrationsTable, "version", version, "dirty", dirty)
 	return nil
 }

@@ -16,7 +16,7 @@ type querier interface {
 }
 
 func QueryOne[T any](ctx context.Context, db *DB, scan func(Scanner) (T, error), query string, args ...any) (T, error) {
-	item, err := scan(db.querier(ctx).QueryRowContext(ctx, query, args...))
+	item, err := scan(db.querier(ctx).QueryRowContext(ctx, db.query(query), args...))
 	if err != nil {
 		var zero T
 		return zero, mapError(err)
@@ -26,7 +26,7 @@ func QueryOne[T any](ctx context.Context, db *DB, scan func(Scanner) (T, error),
 }
 
 func QueryMany[T any](ctx context.Context, db *DB, scan func(Scanner) (T, error), query string, args ...any) ([]T, error) {
-	rows, err := db.querier(ctx).QueryContext(ctx, query, args...)
+	rows, err := db.querier(ctx).QueryContext(ctx, db.query(query), args...)
 	if err != nil {
 		return nil, mapError(err)
 	}
@@ -65,7 +65,7 @@ func Insert(ctx context.Context, db *DB, query string, id string, args ...any) (
 }
 
 func Exec(ctx context.Context, db *DB, query string, args ...any) (int64, error) {
-	result, err := db.querier(ctx).ExecContext(ctx, query, args...)
+	result, err := db.querier(ctx).ExecContext(ctx, db.query(query), args...)
 	if err != nil {
 		return 0, mapError(err)
 	}
